@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+venv/
+__pycache__/
+*.pyc
+target/
+
+# env / secrets — catch all variants (.env.local, .env.prod, .env.staging, etc.)
+.env*
+!.env.example
+
+# credentials / keys
+*.pem
+*.key
+*.p12
+*.json.enc
+credentials.json
+service-account*.json
+
+# build
+.next/
+dist/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!*.tfvars.example
+
+# os
+.DS_Store
+Thumbs.db
+

@@ -1,0 +1,17 @@
+#!/bin/sh
+
+echo "==> pre-push validation"
+
+cd backend
+python -m pytest tests/ -v || exit 1
+cd ..
+
+cd frontend
+pnpm run build || exit 1
+cd ..
+
+if [ -d "rust-core" ] && command -v cargo &>/dev/null; then
+  cd rust-core
+  cargo test || exit 1
+  cd ..
+fi

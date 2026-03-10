@@ -1,0 +1,17 @@
+[package]
+name = "pawacloud-core"
+version = "0.1.0"
+edition = "2021"
+description = "Text processing bindings for PawaCloud Assistant"
+
+[lib]
+name = "pawacloud_core"
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }
+serde_json = "1"
+
+# cargo test needs rlib, not just cdylib — and extension-module
+# causes linker issues in test mode. CI runs cargo test --lib
+# which exercises unit + doc tests on the rlib target.

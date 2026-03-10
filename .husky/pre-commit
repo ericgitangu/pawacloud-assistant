@@ -1,0 +1,38 @@
+#!/bin/sh
+
+echo "==> pre-commit checks"
+
+# secret scanning
+if command -v gitleaks &>/dev/null; then
+  gitleaks protect --staged --no-banner || exit 1
+fi
+
+# backend: python
+BACKEND_CHANGED=$(git diff --cached --name-only -- 'backend/')
+if [ -n "$BACKEND_CHANGED" ]; then
+  echo "  -> python lint"
+  cd backend
+  python -m ruff check app/ tests/ --fix || exit 1
+  python -m ruff format app/ tests/ --check || exit 1
+  cd ..
+fi
+
+# frontend: typescript
+FRONTEND_CHANGED=$(git diff --cached --name-only -- 'frontend/')
+if [ -n "$FRONTEND_CHANGED" ]; then
+  echo "  -> frontend lint"
+  cd frontend
+  pnpm tsc --noEmit || exit 1
+  pnpm eslint . || exit 1
+  cd ..
+fi
+
+# rust
+RUST_CHANGED=$(git diff --cached --name-only -- 'rust-core/')
+if [ -n "$RUST_CHANGED" ]; then
+  echo "  -> rust checks"
+  cd rust-core
+  cargo fmt --check || exit 1
+  cargo clippy -- -D warnings || exit 1
+  cd ..
+fi
