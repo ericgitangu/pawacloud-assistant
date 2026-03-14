@@ -1,0 +1,7 @@
+project_id           = "pawacloud-assessment"
+region               = "africa-south1"
+gemini_api_key       = "your-gemini-api-key"
+redis_url            = "redis://default:xxx@fly-pawacloud-redis.upstash.io:6379"
+google_client_id     = "xxx.apps.googleusercontent.com"
+google_client_secret = "GOCSPX-xxx"
+session_secret       = "change-me-in-prod"
