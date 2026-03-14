@@ -1,0 +1,23 @@
+app = 'pawacloud-web'
+primary_region = 'jnb'
+
+[build]
+  dockerfile = "Dockerfile"
+
+[build.args]
+  NEXT_PUBLIC_API_URL = "https://pawacloud-api-904401126919.africa-south1.run.app"
+
+[env]
+  NEXT_PUBLIC_API_URL = "https://pawacloud-api-904401126919.africa-south1.run.app"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1
