@@ -42,14 +42,17 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
         textareaRef.current?.blur();
       }
     },
-    [handleSubmit]
+    [handleSubmit],
   );
 
   const CHAR_LIMIT = 2000;
   const showCharCount = input.length > CHAR_LIMIT * 0.8;
 
   return (
-    <div className="relative flex items-end gap-2 rounded-2xl border border-[var(--border)] bg-[var(--card)]/60 p-2 shadow-lg transition-colors focus-within:border-pawa-cyan/40 focus-within:shadow-pawa-cyan/5" aria-busy={isLoading}>
+    <div
+      className="relative flex items-end gap-2 rounded-2xl border border-[var(--border)] bg-[var(--card)]/60 p-2 shadow-lg transition-colors focus-within:border-pawa-cyan/40 focus-within:shadow-pawa-cyan/5"
+      aria-busy={isLoading}
+    >
       <textarea
         ref={textareaRef}
         value={input}

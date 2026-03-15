@@ -69,7 +69,11 @@ export function Footer() {
               title={link.label}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={link.icon} alt="" className="h-3 w-3 opacity-40 transition-opacity group-hover:opacity-80" />
+              <img
+                src={link.icon}
+                alt=""
+                className="h-3 w-3 opacity-40 transition-opacity group-hover:opacity-80"
+              />
               <span>{link.label}</span>
             </a>
           ))}

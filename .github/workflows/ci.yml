@@ -18,8 +18,18 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Install dependencies
-        run: pip install -r backend/requirements.txt
+        run: |
+          pip install -r backend/requirements.txt
+          pip install maturin
+
+      - name: Build PyO3 extension
+        working-directory: rust-core
+        run: |
+          maturin build --release
+          pip install target/wheels/*.whl
 
       - name: Lint
         working-directory: backend
@@ -29,7 +39,7 @@ jobs:
 
       - name: Tests
         working-directory: backend
-        run: python -m pytest tests/ -v --tb=short --doctest-modules app/services/text_processing.py app/services/response_processing.py
+        run: python -m pytest tests/ -v --tb=short
 
   rust:
     runs-on: ubuntu-latest

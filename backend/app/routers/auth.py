@@ -212,10 +212,15 @@ async def signup(body: SignupRequest):
 
     session_id = str(uuid4())
     session_token = _sign_token(
-        {"session_id": session_id, "email": user_data["email"],
-         "name": user_data["name"], "picture": user_data.get("picture", ""),
-         "authenticated": True},
-        settings.SESSION_SECRET, ttl=86400,
+        {
+            "session_id": session_id,
+            "email": user_data["email"],
+            "name": user_data["name"],
+            "picture": user_data.get("picture", ""),
+            "authenticated": True,
+        },
+        settings.SESSION_SECRET,
+        ttl=86400,
     )
     response = JSONResponse(
         {
@@ -262,16 +267,23 @@ async def login_email(body: LoginRequest):
 
     session_id = str(uuid4())
     session_token = _sign_token(
-        {"session_id": session_id, "email": user_data["email"],
-         "name": user_data["name"], "picture": user_data.get("picture", ""),
-         "authenticated": True},
-        settings.SESSION_SECRET, ttl=86400,
+        {
+            "session_id": session_id,
+            "email": user_data["email"],
+            "name": user_data["name"],
+            "picture": user_data.get("picture", ""),
+            "authenticated": True,
+        },
+        settings.SESSION_SECRET,
+        ttl=86400,
     )
-    response = JSONResponse({
-        "message": "Login successful",
-        "user": user_data,
-        "session_token": session_token,
-    })
+    response = JSONResponse(
+        {
+            "message": "Login successful",
+            "user": user_data,
+            "session_token": session_token,
+        }
+    )
     _store_session(session_id, user_data, response)
     return response
 

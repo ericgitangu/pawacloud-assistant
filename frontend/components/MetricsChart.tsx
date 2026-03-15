@@ -25,7 +25,11 @@ function fmtTime(date: Date): string {
   return date.toLocaleTimeString([], { hour12: false });
 }
 
-export function MetricsChart({ pollInterval = 5000 }: { pollInterval?: number }) {
+export function MetricsChart({
+  pollInterval = 5000,
+}: {
+  pollInterval?: number;
+}) {
   const [series, setSeries] = useState<DataPoint[]>([]);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -74,9 +78,13 @@ export function MetricsChart({ pollInterval = 5000 }: { pollInterval?: number })
     );
   }
 
-  const avgLatency = Math.round(series.reduce((s, d) => s + d.latency, 0) / series.length);
+  const avgLatency = Math.round(
+    series.reduce((s, d) => s + d.latency, 0) / series.length,
+  );
   const maxLatency = Math.max(...series.map((d) => d.latency));
-  const uptime = Math.round((series.filter((d) => d.status === 1).length / series.length) * 100);
+  const uptime = Math.round(
+    (series.filter((d) => d.status === 1).length / series.length) * 100,
+  );
 
   return (
     <div>
@@ -86,23 +94,33 @@ export function MetricsChart({ pollInterval = 5000 }: { pollInterval?: number })
           Avg <span className="font-mono text-pawa-cyan">{avgLatency}ms</span>
         </span>
         <span>
-          Peak <span className="font-mono text-pawa-warning">{maxLatency}ms</span>
+          Peak{" "}
+          <span className="font-mono text-pawa-warning">{maxLatency}ms</span>
         </span>
         <span>
           Uptime <span className="font-mono text-pawa-accent">{uptime}%</span>
         </span>
-        <span className="ml-auto opacity-60">{series.length} samples / {pollInterval / 1000}s interval</span>
+        <span className="ml-auto opacity-60">
+          {series.length} samples / {pollInterval / 1000}s interval
+        </span>
       </div>
 
       <ResponsiveContainer width="100%" height={180}>
-        <AreaChart data={series} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+        <AreaChart
+          data={series}
+          margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+        >
           <defs>
             <linearGradient id="latencyGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#00b4d8" stopOpacity={0.3} />
               <stop offset="100%" stopColor="#00b4d8" stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="var(--border)"
+            opacity={0.3}
+          />
           <XAxis
             dataKey="time"
             tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}

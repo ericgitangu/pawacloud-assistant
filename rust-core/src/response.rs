@@ -95,7 +95,7 @@ mod tests {
     #[test]
     fn format_sources_dedup_same_domain() {
         let text = "Check https://cloud.google.com/run and https://cloud.google.com/sql";
-        let result = format_sources(text).unwrap();
+        let result = format_sources(text);
         let parsed: Vec<String> = serde_json::from_str(&result).unwrap();
         assert_eq!(parsed.len(), 1);
     }
@@ -103,7 +103,7 @@ mod tests {
     #[test]
     fn format_sources_different_domains() {
         let text = "See https://cloud.google.com and https://github.com/foo";
-        let result = format_sources(text).unwrap();
+        let result = format_sources(text);
         let parsed: Vec<String> = serde_json::from_str(&result).unwrap();
         assert_eq!(parsed.len(), 2);
     }

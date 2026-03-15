@@ -32,7 +32,7 @@ export function MessageBubble({ message, userPicture }: MessageBubbleProps) {
     <div
       className={cn(
         "animate-fade-in-up flex gap-3",
-        isUser && "flex-row-reverse"
+        isUser && "flex-row-reverse",
       )}
     >
       <div
@@ -40,13 +40,17 @@ export function MessageBubble({ message, userPicture }: MessageBubbleProps) {
           "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
           isUser
             ? "bg-[var(--muted)] text-[var(--foreground)]"
-            : "bg-gradient-to-br from-pawa-cyan to-pawa-accent text-pawa-dark"
+            : "bg-gradient-to-br from-pawa-cyan to-pawa-accent text-pawa-dark",
         )}
       >
         {isUser ? (
           userPicture ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={userPicture} alt="" className="h-8 w-8 rounded-lg object-cover" />
+            <img
+              src={userPicture}
+              alt=""
+              className="h-8 w-8 rounded-lg object-cover"
+            />
           ) : (
             <User className="h-4 w-4" />
           )
@@ -60,7 +64,7 @@ export function MessageBubble({ message, userPicture }: MessageBubbleProps) {
           "group relative max-w-[85%] rounded-2xl px-4 py-3",
           isUser
             ? "rounded-tr-sm bg-pawa-cyan/15"
-            : "rounded-tl-sm bg-[var(--card)]/80"
+            : "rounded-tl-sm bg-[var(--card)]/80",
         )}
         {...(!isUser && { "aria-live": "polite" as const })}
       >
@@ -75,7 +79,11 @@ export function MessageBubble({ message, userPicture }: MessageBubbleProps) {
                 <ReactMarkdown>{message.content}</ReactMarkdown>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 py-1" aria-label="Assistant is typing" role="status">
+              <div
+                className="flex items-center gap-1.5 py-1"
+                aria-label="Assistant is typing"
+                role="status"
+              >
                 <div className="typing-dot h-2 w-2 rounded-full bg-pawa-cyan" />
                 <div className="typing-dot h-2 w-2 rounded-full bg-pawa-cyan" />
                 <div className="typing-dot h-2 w-2 rounded-full bg-pawa-cyan" />
@@ -109,7 +117,7 @@ export function MessageBubble({ message, userPicture }: MessageBubbleProps) {
         <p
           className={cn(
             "mt-1 text-[10px] text-[var(--muted-foreground)]/40",
-            isUser ? "text-right" : "text-left"
+            isUser ? "text-right" : "text-left",
           )}
         >
           {message.timestamp.toLocaleTimeString([], {

@@ -67,7 +67,9 @@ export function HistoryPanel({
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <MessageSquare className="mb-3 h-8 w-8 text-[var(--muted)]" />
-            <p className="text-sm text-[var(--muted-foreground)]">No history yet</p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              No history yet
+            </p>
             <p className="text-xs text-[var(--muted-foreground)]/50">
               Start a conversation to see it here
             </p>
@@ -80,9 +82,7 @@ export function HistoryPanel({
                   onClick={() => onSelect(item)}
                   className="w-full rounded-lg p-3 text-left transition-colors hover:bg-[var(--muted)]/20"
                 >
-                  <p className="mb-1 truncate text-sm pr-6">
-                    {item.query}
-                  </p>
+                  <p className="mb-1 truncate text-sm pr-6">{item.query}</p>
                   <p className="truncate text-xs text-[var(--muted-foreground)]/60">
                     {item.response.slice(0, 80)}...
                   </p>
@@ -92,7 +92,10 @@ export function HistoryPanel({
                 </button>
                 {onDeleteItem && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); onDeleteItem(item.id); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteItem(item.id);
+                    }}
                     className="absolute right-2 top-3 rounded-md p-1 text-[var(--muted-foreground)]/40 opacity-0 transition-all hover:bg-pawa-error/10 hover:text-pawa-error group-hover/item:opacity-100"
                     title="Delete conversation"
                   >
