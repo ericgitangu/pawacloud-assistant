@@ -2,6 +2,7 @@
 
 AI-powered chatbot with Gemini, Rust+PyO3 text processing, and GCP deployment.
 
+[![CI](https://github.com/ericgitangu/pawacloud-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/ericgitangu/pawacloud-assistant/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
 ![Rust](https://img.shields.io/badge/Rust-PyO3-DEA584?logo=rust&logoColor=white)
@@ -115,7 +116,11 @@ cd rust-core && cargo test   # rust (runs inside Docker build)
 | `GET` | `/health/infra` | Cloud Run / Fly.io env info |
 | `GET` | `/health/llm` | Live Gemini connectivity test |
 | `GET` | `/auth/login` | → Google OAuth consent |
+| `GET` | `/auth/callback` | OAuth code → session |
+| `POST` | `/auth/signup` | Create email/password account |
+| `POST` | `/auth/login` | Email/password login |
 | `GET` | `/auth/me` | Current user |
+| `POST` | `/auth/logout` | Clear session |
 | `POST` | `/auth/guest-pass` | 60-min session for `@pawait.co.ke` |
 
 All endpoints return typed Pydantic v2 models. Input sanitized via Rust PyO3 (Python fallback). See [Swagger](https://pawacloud-api-904401126919.africa-south1.run.app/docs) for request/response schemas.
@@ -146,7 +151,7 @@ sequenceDiagram
     participant F as Next.js
     participant B as FastAPI
     participant R as Rust/PyO3
-    participant RD as Redis
+    participant PG as Neon PG
     participant G as Gemini
 
     U->>F: Submit question
@@ -157,9 +162,7 @@ sequenceDiagram
         G-->>B: chunk
         B-->>F: data: chunk
     end
-    B->>RD: Cache session
     B->>PG: Persist conversation
-    participant PG as Neon PG
 ```
 
 ```mermaid
@@ -266,7 +269,7 @@ System prompt in `services/llm_service.py`. Details in [docs/PROMPTS.md](docs/PR
 | CORS errors in browser console | Ensure `ALLOWED_ORIGINS` in `backend/.env` includes your frontend URL (default: `http://localhost:3000`) |
 | `maturin develop` fails | Rust toolchain missing — `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh`. Or skip it entirely; Python fallback handles everything |
 | Docker compose: port 5432 in use | Local PostgreSQL is running — `brew services stop postgresql` or change the port in `docker-compose.yml` |
-| History empty after login | Backend needs Redis (`docker compose up redis`) or a `DATABASE_URL` for persistence. Without both, history is in-memory and lost on restart |
+| History empty after login | Set `DATABASE_URL` in `backend/.env` for persistent history. Without it, history is in-memory and lost on restart. Redis is optional (session cache only) |
 | OAuth callback fails locally | Set `OAUTH_REDIRECT_URI=http://localhost:8000/auth/callback` and `FRONTEND_URL=http://localhost:3000` in `backend/.env`. Google Console must list the redirect URI |
 
 ---

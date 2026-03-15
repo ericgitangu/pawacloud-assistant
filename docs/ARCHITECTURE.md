@@ -13,25 +13,24 @@ Browser → Next.js middleware (auth gate) → page.tsx
   ↓ SSE
 FastAPI /chat/stream → sanitize (Rust/Python) → Gemini 2.5 Flash → stream chunks
   ↓
-History stored in Redis (keyed by user email for persistence across sessions)
+Conversation persisted to PostgreSQL (keyed by user email for authenticated users)
 ```
 
 ## Auth
 
-Three paths, all end up with a Redis session + `pawacloud_auth` cookie:
+Three paths, all produce an HMAC-signed Bearer token stored in localStorage:
 
-- Google OAuth (redirect flow)
+- Google OAuth (redirect flow → signed token exchange)
 - Email/password (bcrypt, PostgreSQL)
 - Guest pass (@pawait.co.ke domain, 60-min TTL)
 
-Frontend middleware checks `pawacloud_auth` cookie. No cookie → `/login`.
-Cross-origin cookies use `SameSite=None; Secure` between Cloud Run and Fly.io.
+Frontend sends `Authorization: Bearer <token>` on every API call — no cross-origin cookie dependency. Redis stores session blobs as a fallback for cookie-based sessions. Frontend middleware checks `pawacloud_auth` cookie for route gating; no cookie → `/login`.
 
 ## Data stores
 
-- **PostgreSQL** — user accounts (email, name, picture, password_hash, provider)
-- **Redis** — sessions (JSON blob, TTL'd) + chat history (per-user lists, keyed by email)
-- Falls back to in-memory if either is unavailable
+- **PostgreSQL (Neon, eu-west-2)** — user accounts + chat history (`conversations` table, indexed by session/email)
+- **Redis (Upstash)** — session cache (JSON blob, TTL'd). Fallback auth path when Bearer tokens aren't present
+- In-memory deque as read cache for history; falls back to in-memory-only if both stores are unavailable
 
 ## Deployment
 

@@ -36,13 +36,11 @@ class Settings(BaseSettings):
     MAX_QUERY_LENGTH: int = 2000
     MAX_HISTORY_ITEMS: int = 50
 
-    # Redis — session storage + persistent history
+    # Redis — session cache (auth state, TTL'd JSON blobs)
     REDIS_URL: str = Field(
         default="redis://localhost:6379", description="Redis connection URL"
     )
-    REDIS_TTL: int = Field(
-        default=86400, description="Session/history TTL in seconds (24h)"
-    )
+    REDIS_TTL: int = Field(default=86400, description="Session TTL in seconds (24h)")
 
     # PostgreSQL — user storage for email/password + OAuth account merging
     DATABASE_URL: str = Field(
@@ -55,7 +53,7 @@ class Settings(BaseSettings):
         default="", description="Google OAuth client secret"
     )
     SESSION_SECRET: str = Field(
-        default="change-me-in-prod", description="Cookie signing secret"
+        default="change-me-in-prod", description="HMAC token signing secret"
     )
     OAUTH_REDIRECT_URI: str = Field(default="http://localhost:8000/auth/callback")
     FRONTEND_URL: str = Field(default="http://localhost:3000")

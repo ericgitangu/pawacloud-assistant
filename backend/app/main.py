@@ -38,7 +38,10 @@ app = FastAPI(
     openapi_tags=[
         {"name": "Chat", "description": "Q&A with Gemini LLM — sync and streaming"},
         {"name": "Health", "description": "Service health and metadata"},
-        {"name": "Auth", "description": "Google OAuth login and session management"},
+        {
+            "name": "Auth",
+            "description": "Google OAuth, email/password, and guest pass authentication",
+        },
     ],
     swagger_ui_parameters={"defaultModelsExpandDepth": -1},
 )
