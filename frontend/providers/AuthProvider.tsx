@@ -26,7 +26,9 @@ function cacheUser(u: UserInfo | null) {
   try {
     if (u) localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
     else localStorage.removeItem(STORAGE_KEY);
-  } catch { /* private browsing */ }
+  } catch {
+    /* private browsing */
+  }
 }
 
 interface AuthContextType {

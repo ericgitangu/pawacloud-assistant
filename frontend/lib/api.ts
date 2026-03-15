@@ -7,17 +7,25 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const TOKEN_KEY = "pawacloud_token";
 
 export function getStoredToken(): string | null {
-  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
 }
 
 export function storeToken(token: string | null) {
   try {
     if (token) localStorage.setItem(TOKEN_KEY, token);
     else localStorage.removeItem(TOKEN_KEY);
-  } catch { /* private browsing */ }
+  } catch {
+    /* private browsing */
+  }
 }
 
-function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+function authHeaders(
+  extra: Record<string, string> = {},
+): Record<string, string> {
   const token = getStoredToken();
   if (token) return { ...extra, Authorization: `Bearer ${token}` };
   return extra;
@@ -69,12 +77,12 @@ export async function streamQuery(
   query: string,
   onChunk: (text: string) => void,
   onDone: () => void,
-  onError: (error: string) => void
+  onError: (error: string) => void,
 ): Promise<void> {
   try {
     const res = await fetch(
       `${API_BASE}/api/v1/chat/stream?q=${encodeURIComponent(query)}`,
-      { headers: authHeaders({ Accept: "text/event-stream" }) }
+      { headers: authHeaders({ Accept: "text/event-stream" }) },
     );
 
     if (!res.ok) throw new Error(`Stream error: ${res.status}`);
@@ -118,11 +126,11 @@ export async function streamQuery(
 
 export async function getHistory(
   limit = 20,
-  offset = 0
+  offset = 0,
 ): Promise<HistoryResponse> {
   const res = await fetch(
     `${API_BASE}/api/v1/chat/history?limit=${limit}&offset=${offset}`,
-    { headers: authHeaders() }
+    { headers: authHeaders() },
   );
   if (!res.ok) throw new Error(`History fetch failed: ${res.status}`);
   return res.json();
@@ -158,7 +166,9 @@ export function getLoginUrl(): string {
   return `${API_BASE}/auth/login`;
 }
 
-export async function exchangeOAuthToken(token: string): Promise<UserInfo | null> {
+export async function exchangeOAuthToken(
+  token: string,
+): Promise<UserInfo | null> {
   try {
     const res = await fetch(`${API_BASE}/auth/exchange`, {
       method: "POST",
@@ -193,7 +203,7 @@ export interface AuthResponse {
 export async function signupWithEmail(
   email: string,
   name: string,
-  password: string
+  password: string,
 ): Promise<AuthResponse> {
   const res = await fetch(`${API_BASE}/auth/signup`, {
     method: "POST",
@@ -210,7 +220,7 @@ export async function signupWithEmail(
 }
 
 export async function activateGuestPass(
-  email: string
+  email: string,
 ): Promise<AuthResponse & { ttl_minutes: number }> {
   const res = await fetch(`${API_BASE}/auth/guest-pass`, {
     method: "POST",
@@ -228,7 +238,7 @@ export async function activateGuestPass(
 
 export async function loginWithEmail(
   email: string,
-  password: string
+  password: string,
 ): Promise<AuthResponse> {
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: "POST",

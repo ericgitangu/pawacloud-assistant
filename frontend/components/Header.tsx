@@ -3,7 +3,17 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Cloud, History, Sparkles, ExternalLink, Menu, ChevronsLeft, LogOut, User, UserPlus } from "lucide-react";
+import {
+  Cloud,
+  History,
+  Sparkles,
+  ExternalLink,
+  Menu,
+  ChevronsLeft,
+  LogOut,
+  User,
+  UserPlus,
+} from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { logout as logoutApi } from "@/lib/api";
@@ -90,7 +100,7 @@ export function Header({
                   "rounded-md px-3 py-1.5 text-sm transition-colors",
                   pathname === link.href
                     ? "bg-pawa-cyan/15 text-pawa-cyan font-medium"
-                    : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                    : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
                 )}
               >
                 {link.label}
@@ -123,7 +133,7 @@ export function Header({
                 "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm transition-all",
                 historyOpen
                   ? "bg-pawa-cyan/20 text-pawa-cyan"
-                  : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                  : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
               )}
               title="Toggle conversation history"
             >
@@ -141,7 +151,11 @@ export function Header({
               >
                 {user.picture ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={user.picture} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover " />
+                  <img
+                    src={user.picture}
+                    alt=""
+                    className="h-8 w-8 shrink-0 rounded-full object-cover "
+                  />
                 ) : (
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-pawa-cyan/15 ">
                     <User className="h-4 w-4 text-pawa-cyan" />
@@ -157,20 +171,31 @@ export function Header({
                   <div className="flex items-center gap-3 rounded-lg px-3 py-2.5">
                     {user.picture ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={user.picture} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover " />
+                      <img
+                        src={user.picture}
+                        alt=""
+                        className="h-10 w-10 shrink-0 rounded-full object-cover "
+                      />
                     ) : (
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pawa-cyan/15 ">
                         <User className="h-5 w-5 text-pawa-cyan" />
                       </div>
                     )}
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{user.name}</p>
-                      <p className="truncate text-[10px] text-[var(--muted-foreground)]">{user.email}</p>
+                      <p className="truncate text-sm font-medium">
+                        {user.name}
+                      </p>
+                      <p className="truncate text-[10px] text-[var(--muted-foreground)]">
+                        {user.email}
+                      </p>
                     </div>
                   </div>
                   <div className="my-1 h-px bg-[var(--border)]" />
                   <button
-                    onClick={() => { setAvatarOpen(false); handleLogout(); }}
+                    onClick={() => {
+                      setAvatarOpen(false);
+                      handleLogout();
+                    }}
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-[var(--muted-foreground)] transition-colors hover:bg-pawa-error/10 hover:text-pawa-error"
                   >
                     <LogOut className="h-3.5 w-3.5" />
@@ -191,7 +216,7 @@ export function Header({
                 href="/signup"
                 className={cn(
                   "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                  "bg-pawa-cyan/15 text-pawa-cyan hover:bg-pawa-cyan/25"
+                  "bg-pawa-cyan/15 text-pawa-cyan hover:bg-pawa-cyan/25",
                 )}
               >
                 <UserPlus className="h-3.5 w-3.5" />
@@ -236,7 +261,11 @@ export function Header({
                 <div className="flex items-center gap-2">
                   {user.picture ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={user.picture} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover " />
+                    <img
+                      src={user.picture}
+                      alt=""
+                      className="h-10 w-10 shrink-0 rounded-full object-cover "
+                    />
                   ) : (
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pawa-cyan/15 ">
                       <User className="h-5 w-5 text-pawa-cyan" />
@@ -244,7 +273,9 @@ export function Header({
                   )}
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{user.name}</p>
-                    <p className="truncate text-[10px] text-[var(--muted-foreground)]">{user.email}</p>
+                    <p className="truncate text-[10px] text-[var(--muted-foreground)]">
+                      {user.email}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -262,7 +293,7 @@ export function Header({
                       "flex items-center rounded-lg px-3 py-2.5 text-sm transition-colors",
                       pathname === link.href
                         ? "bg-pawa-cyan/15 text-pawa-cyan font-medium"
-                        : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                        : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
                     )}
                   >
                     {link.label}

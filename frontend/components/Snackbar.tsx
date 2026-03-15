@@ -12,13 +12,29 @@ interface SnackbarProps {
   onDismiss: () => void;
 }
 
-const variantStyles: Record<SnackbarVariant, { border: string; bg: string; icon: typeof CheckCircle }> = {
-  success: { border: "border-pawa-accent/40", bg: "bg-pawa-accent/10", icon: CheckCircle },
-  error: { border: "border-pawa-error/40", bg: "bg-pawa-error/10", icon: AlertCircle },
+const variantStyles: Record<
+  SnackbarVariant,
+  { border: string; bg: string; icon: typeof CheckCircle }
+> = {
+  success: {
+    border: "border-pawa-accent/40",
+    bg: "bg-pawa-accent/10",
+    icon: CheckCircle,
+  },
+  error: {
+    border: "border-pawa-error/40",
+    bg: "bg-pawa-error/10",
+    icon: AlertCircle,
+  },
   info: { border: "border-pawa-cyan/40", bg: "bg-pawa-cyan/10", icon: Info },
 };
 
-export function Snackbar({ message, variant = "info", duration = 4000, onDismiss }: SnackbarProps) {
+export function Snackbar({
+  message,
+  variant = "info",
+  duration = 4000,
+  onDismiss,
+}: SnackbarProps) {
   const [exiting, setExiting] = useState(false);
   const styles = variantStyles[variant];
   const Icon = styles.icon;
@@ -26,7 +42,10 @@ export function Snackbar({ message, variant = "info", duration = 4000, onDismiss
   useEffect(() => {
     const timer = setTimeout(() => setExiting(true), duration - 200);
     const dismiss = setTimeout(onDismiss, duration);
-    return () => { clearTimeout(timer); clearTimeout(dismiss); };
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(dismiss);
+    };
   }, [duration, onDismiss]);
 
   return (
@@ -39,7 +58,10 @@ export function Snackbar({ message, variant = "info", duration = 4000, onDismiss
         <Icon className="h-4 w-4 shrink-0 text-[var(--foreground)]" />
         <span className="text-sm text-[var(--foreground)]">{message}</span>
         <button
-          onClick={() => { setExiting(true); setTimeout(onDismiss, 200); }}
+          onClick={() => {
+            setExiting(true);
+            setTimeout(onDismiss, 200);
+          }}
           className="ml-1 rounded-md p-0.5 text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
         >
           <X className="h-3.5 w-3.5" />

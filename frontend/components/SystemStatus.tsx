@@ -36,9 +36,17 @@ interface SystemStatusProps {
   pollInterval?: number;
 }
 
-export function SystemStatus({ size = "xs", showDetails = false, pollInterval = 30000 }: SystemStatusProps) {
+export function SystemStatus({
+  size = "xs",
+  showDetails = false,
+  pollInterval = 30000,
+}: SystemStatusProps) {
   const [status, setStatus] = useState<ServiceStatus>({
-    api: "checking", llm: "checking", rust: "checking", latency: null, rustNative: undefined,
+    api: "checking",
+    llm: "checking",
+    rust: "checking",
+    latency: null,
+    rustNative: undefined,
   });
   const abortRef = useRef<AbortController | null>(null);
 
@@ -57,7 +65,12 @@ export function SystemStatus({ size = "xs", showDetails = false, pollInterval = 
       const elapsed = Math.round(performance.now() - start);
 
       if (!res.ok) {
-        setStatus({ api: "degraded", llm: "checking", rust: "checking", latency: elapsed });
+        setStatus({
+          api: "degraded",
+          llm: "checking",
+          rust: "checking",
+          latency: elapsed,
+        });
         return;
       }
 
@@ -73,10 +86,22 @@ export function SystemStatus({ size = "xs", showDetails = false, pollInterval = 
       });
 
       // cache for offline display
-      try { localStorage.setItem("pawacloud_status", JSON.stringify({ ...data, latency: elapsed })); } catch { /* noop */ }
+      try {
+        localStorage.setItem(
+          "pawacloud_status",
+          JSON.stringify({ ...data, latency: elapsed }),
+        );
+      } catch {
+        /* noop */
+      }
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      setStatus({ api: "outage", llm: "outage", rust: "checking", latency: null });
+      setStatus({
+        api: "outage",
+        llm: "outage",
+        rust: "checking",
+        latency: null,
+      });
     }
   }, []);
 
@@ -122,18 +147,24 @@ export function SystemStatus({ size = "xs", showDetails = false, pollInterval = 
             key={svc.key}
             className="flex items-center gap-2.5 rounded-lg border border-[var(--border)] bg-[var(--card)]/40 px-3 py-2"
           >
-            <div className={cn(
-              "h-2.5 w-2.5 rounded-full shrink-0",
-              STATUS_COLORS[status[svc.key]],
-              status[svc.key] === "operational" && "animate-pulse",
-            )} />
+            <div
+              className={cn(
+                "h-2.5 w-2.5 rounded-full shrink-0",
+                STATUS_COLORS[status[svc.key]],
+                status[svc.key] === "operational" && "animate-pulse",
+              )}
+            />
             <div className="min-w-0">
               <span className="text-xs font-medium block">{svc.label}</span>
               <span className="text-[10px] text-[var(--muted-foreground)] block">
                 {STATUS_LABELS[status[svc.key]]}
-                {svc.key === "api" && status.latency != null && ` \u00b7 ${status.latency}ms`}
+                {svc.key === "api" &&
+                  status.latency != null &&
+                  ` \u00b7 ${status.latency}ms`}
                 {svc.key === "llm" && status.model && ` \u00b7 ${status.model}`}
-                {svc.key === "rust" && status.rustNative === false && " \u00b7 fallback"}
+                {svc.key === "rust" &&
+                  status.rustNative === false &&
+                  " \u00b7 fallback"}
               </span>
             </div>
           </div>
@@ -145,16 +176,25 @@ export function SystemStatus({ size = "xs", showDetails = false, pollInterval = 
   return (
     <div className={cn("flex items-center gap-2", textSize)}>
       {services.map((svc) => (
-        <div key={svc.key} className="flex items-center gap-1" title={`${svc.label}: ${status[svc.key]}${svc.key === "api" && status.latency ? ` (${status.latency}ms)` : ""}`}>
-          <div className={cn(
-            dotSize, "rounded-full",
-            STATUS_COLORS[status[svc.key]],
-            status[svc.key] === "operational" && "animate-pulse",
-          )} />
+        <div
+          key={svc.key}
+          className="flex items-center gap-1"
+          title={`${svc.label}: ${status[svc.key]}${svc.key === "api" && status.latency ? ` (${status.latency}ms)` : ""}`}
+        >
+          <div
+            className={cn(
+              dotSize,
+              "rounded-full",
+              STATUS_COLORS[status[svc.key]],
+              status[svc.key] === "operational" && "animate-pulse",
+            )}
+          />
           {showDetails && (
             <span className="text-[var(--muted-foreground)]/60">
               {svc.label}
-              {svc.key === "api" && status.latency != null && <span className="ml-0.5 opacity-60">{status.latency}ms</span>}
+              {svc.key === "api" && status.latency != null && (
+                <span className="ml-0.5 opacity-60">{status.latency}ms</span>
+              )}
             </span>
           )}
         </div>

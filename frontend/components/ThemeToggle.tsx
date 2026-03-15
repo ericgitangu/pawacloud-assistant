@@ -5,9 +5,15 @@ import { Sun, Moon } from "lucide-react";
 import { useSyncExternalStore } from "react";
 
 // hydration-safe mount check — avoids useEffect + setState pattern
-function subscribe() { return () => {}; }
-function getSnapshot() { return true; }
-function getServerSnapshot() { return false; }
+function subscribe() {
+  return () => {};
+}
+function getSnapshot() {
+  return true;
+}
+function getServerSnapshot() {
+  return false;
+}
 
 function useMounted() {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);

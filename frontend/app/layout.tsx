@@ -25,7 +25,8 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   metadataBase: new URL("https://pawacloud-web.fly.dev"),
   title: "PawaCloud Assistant",
-  description: "Your AI assistant for cloud infrastructure, general knowledge, and everything in between.",
+  description:
+    "Your AI assistant for cloud infrastructure, general knowledge, and everything in between.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -37,7 +38,14 @@ export const metadata: Metadata = {
     description: "AI assistant for cloud, code, and general questions.",
     url: "https://pawacloud-web.fly.dev",
     siteName: "PawaCloud Assistant",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "PawaCloud Assistant" }],
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "PawaCloud Assistant",
+      },
+    ],
     type: "website",
   },
   twitter: {

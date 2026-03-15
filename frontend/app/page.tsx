@@ -9,7 +9,13 @@ import { HistoryPanel } from "@/components/HistoryPanel";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { Footer } from "@/components/Footer";
 import { Snackbar } from "@/components/Snackbar";
-import { streamQuery, getHistory, clearHistory, deleteHistoryItem, exchangeOAuthToken } from "@/lib/api";
+import {
+  streamQuery,
+  getHistory,
+  clearHistory,
+  deleteHistoryItem,
+  exchangeOAuthToken,
+} from "@/lib/api";
 import type { HistoryItem } from "@/lib/api";
 import { useAuth } from "@/providers/AuthProvider";
 
@@ -37,7 +43,10 @@ function HomeContent() {
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState<{ message: string; variant: "success" | "error" | "info" } | null>(null);
+  const [snackbar, setSnackbar] = useState<{
+    message: string;
+    variant: "success" | "error" | "info";
+  } | null>(null);
   const [lastQuery, setLastQuery] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -83,7 +92,8 @@ function HomeContent() {
       (async () => {
         const userData = await exchangeOAuthToken(token);
         if (userData) {
-          document.cookie = "pawacloud_auth=1; path=/; max-age=86400; SameSite=Lax";
+          document.cookie =
+            "pawacloud_auth=1; path=/; max-age=86400; SameSite=Lax";
           setUser(userData);
         }
         window.history.replaceState({}, "", "/");
@@ -102,7 +112,8 @@ function HomeContent() {
     if (authLoading) return;
     const uid = user?.email ?? null;
     const isFirstLoad = prevUserRef.current === undefined;
-    const authChanged = prevUserRef.current !== undefined && prevUserRef.current !== uid;
+    const authChanged =
+      prevUserRef.current !== undefined && prevUserRef.current !== uid;
     prevUserRef.current = uid;
     if (isFirstLoad || authChanged) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch, not synchronous cascade
@@ -139,67 +150,70 @@ function HomeContent() {
     return () => document.removeEventListener("keydown", handleEscape);
   }, [error]);
 
-  const handleSend = useCallback(async (query: string) => {
-    if (isLoading) return;
-    setError(null);
-    setLastQuery(query);
+  const handleSend = useCallback(
+    async (query: string) => {
+      if (isLoading) return;
+      setError(null);
+      setLastQuery(query);
 
-    const userMsg: Message = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content: query,
-      timestamp: new Date(),
-    };
+      const userMsg: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: query,
+        timestamp: new Date(),
+      };
 
-    const assistantId = crypto.randomUUID();
-    const assistantMsg: Message = {
-      id: assistantId,
-      role: "assistant",
-      content: "",
-      timestamp: new Date(),
-      isStreaming: true,
-    };
+      const assistantId = crypto.randomUUID();
+      const assistantMsg: Message = {
+        id: assistantId,
+        role: "assistant",
+        content: "",
+        timestamp: new Date(),
+        isStreaming: true,
+      };
 
-    setMessages((prev) => [...prev, userMsg, assistantMsg]);
-    setIsLoading(true);
+      setMessages((prev) => [...prev, userMsg, assistantMsg]);
+      setIsLoading(true);
 
-    await streamQuery(
-      query,
-      (chunk) => {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantId
-              ? { ...msg, content: msg.content + chunk }
-              : msg
-          )
-        );
-      },
-      () => {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantId ? { ...msg, isStreaming: false } : msg
-          )
-        );
-        setIsLoading(false);
-        loadHistory();
-      },
-      (errorMsg) => {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === assistantId
-              ? {
-                  ...msg,
-                  content: `${errorMsg}\n\nCheck that the backend is running and the API key is configured.`,
-                  isStreaming: false,
-                }
-              : msg
-          )
-        );
-        setIsLoading(false);
-        setError(errorMsg);
-      }
-    );
-  }, [isLoading, loadHistory]);
+      await streamQuery(
+        query,
+        (chunk) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantId
+                ? { ...msg, content: msg.content + chunk }
+                : msg,
+            ),
+          );
+        },
+        () => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantId ? { ...msg, isStreaming: false } : msg,
+            ),
+          );
+          setIsLoading(false);
+          loadHistory();
+        },
+        (errorMsg) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantId
+                ? {
+                    ...msg,
+                    content: `${errorMsg}\n\nCheck that the backend is running and the API key is configured.`,
+                    isStreaming: false,
+                  }
+                : msg,
+            ),
+          );
+          setIsLoading(false);
+          setError(errorMsg);
+        },
+      );
+    },
+    [isLoading, loadHistory],
+  );
 
   const handleLoadFromHistory = useCallback((item: HistoryItem) => {
     const restored: Message[] = [
@@ -259,7 +273,11 @@ function HomeContent() {
               ) : (
                 <div className="space-y-4">
                   {messages.map((msg) => (
-                    <MessageBubble key={msg.id} message={msg} userPicture={user?.picture} />
+                    <MessageBubble
+                      key={msg.id}
+                      message={msg}
+                      userPicture={user?.picture}
+                    />
                   ))}
                 </div>
               )}
@@ -268,7 +286,10 @@ function HomeContent() {
 
           {error && (
             <div className="mx-auto max-w-3xl px-4">
-              <div role="alert" className="mb-2 rounded-lg border border-pawa-error/30 bg-pawa-error/10 px-4 py-2 text-sm text-pawa-error">
+              <div
+                role="alert"
+                className="mb-2 rounded-lg border border-pawa-error/30 bg-pawa-error/10 px-4 py-2 text-sm text-pawa-error"
+              >
                 {error}
                 {lastQuery && (
                   <button

@@ -11,10 +11,26 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ suggestions, onSelect }: WelcomeScreenProps) {
   const features = [
-    { icon: Cloud, title: "Cloud Infrastructure", desc: "GCP, AWS, Azure — architecture and deployment" },
-    { icon: Zap, title: "Fast Answers", desc: "Real-time streamed responses as you watch" },
-    { icon: Shield, title: "Best Practices", desc: "Security, cost optimisation, and scaling tips" },
-    { icon: Globe, title: "Multilingual", desc: "English, Swahili, French, and 100+ languages" },
+    {
+      icon: Cloud,
+      title: "Cloud Infrastructure",
+      desc: "GCP, AWS, Azure — architecture and deployment",
+    },
+    {
+      icon: Zap,
+      title: "Fast Answers",
+      desc: "Real-time streamed responses as you watch",
+    },
+    {
+      icon: Shield,
+      title: "Best Practices",
+      desc: "Security, cost optimisation, and scaling tips",
+    },
+    {
+      icon: Globe,
+      title: "Multilingual",
+      desc: "English, Swahili, French, and 100+ languages",
+    },
   ];
 
   return (
@@ -30,8 +46,8 @@ export function WelcomeScreen({ suggestions, onSelect }: WelcomeScreenProps) {
           {/* cyan gradient divider */}
           <div className="mx-auto mb-4 h-px w-16 bg-gradient-to-r from-pawa-cyan to-transparent" />
           <p className="max-w-md text-sm text-[var(--muted-foreground)]">
-            Ask about cloud infrastructure, travel documents, Kenyan news,
-            code reviews, or anything else on your mind.
+            Ask about cloud infrastructure, travel documents, Kenyan news, code
+            reviews, or anything else on your mind.
           </p>
         </div>
       </FadeIn>
