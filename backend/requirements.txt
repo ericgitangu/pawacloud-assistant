@@ -9,7 +9,7 @@ redis[hiredis]==5.2.1
 asyncpg==0.30.0
 bcrypt==4.2.1
 python-jose[cryptography]==3.3.0
-authlib==1.4.0
+authlib==1.6.7
 itsdangerous==2.2.0
 pytest==8.3.4
 ruff==0.9.4
