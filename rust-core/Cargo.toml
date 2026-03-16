@@ -9,7 +9,7 @@ name = "pawacloud_core"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-pyo3 = { version = "0.22", features = ["extension-module"] }
+pyo3 = { version = "0.24", features = ["extension-module"] }
 serde_json = "1"
 
 # cargo test needs rlib, not just cdylib — and extension-module
