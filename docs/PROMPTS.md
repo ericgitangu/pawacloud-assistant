@@ -24,7 +24,7 @@ Lives in `backend/app/services/llm_service.py`. Two-shot structure:
 ## Parameters
 
 | Param | Value | Why |
-|-------|-------|-----|
+| ----- | ----- | --- |
 | temperature | 0.7 | Technical content needs accuracy but not robotic |
 | top_p | 0.9 | Standard nucleus sampling |
 | top_k | 40 | Default, works fine |

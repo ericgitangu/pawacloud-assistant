@@ -1,7 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-# I opted for Fly.io since it is a PaaS that is easy to use and deploy to, vercel, railway, netlify, render, etc are also good options
+# I opted for Fly.io since it is a PaaS that is easy to use and deploy to.
+# Vercel, Railway, Netlify, Render, etc. are also good options.
 echo "==> Deploying frontend to Fly.io"
 cd "$(dirname "$0")/../frontend"
 
