@@ -122,38 +122,70 @@ async def metrics():
 
 
 def _run_pyo3_benchmarks() -> list[dict]:
-    """Measure text processing functions with both Rust and Python paths."""
+    """Measure text processing functions — Rust vs Python when both are available."""
     import time as _time
 
+    from app.services import text_processing
+    from app.services.text_processing import (
+        _py_sanitize_input,
+        _py_estimate_tokens,
+        _py_validate_markdown,
+        _py_extract_code_blocks,
+    )
+
     test_payloads = {
-        "sanitize_input": "Hello <script>alert('xss')</script> world! " * 20,
-        "estimate_tokens": "The quick brown fox jumps over the lazy dog. " * 100,
-        "validate_markdown": "# Heading\n\n- item 1\n- item 2\n\n```python\nprint('hello')\n```\n"
-        * 10,
+        "sanitize_input": (
+            "Hello <script>alert('xss')</script> world! " * 20,
+            _py_sanitize_input,
+        ),
+        "estimate_tokens": (
+            "The quick brown fox jumps over the lazy dog. " * 100,
+            _py_estimate_tokens,
+        ),
+        "validate_markdown": (
+            "# Heading\n\n- item 1\n- item 2\n\n```python\nprint('hello')\n```\n"
+            * 10,
+            _py_validate_markdown,
+        ),
+        "extract_code_blocks": (
+            "# Example\n```python\nprint('hello')\n```\n\nSome text\n```js\nconsole.log('hi')\n```\n"
+            * 5,
+            _py_extract_code_blocks,
+        ),
     }
 
+    iterations = 1000
     results = []
-    for fn_name, payload in test_payloads.items():
-        # time the current implementation (rust or python)
-        try:
-            from app.services import text_processing
 
-            fn = getattr(text_processing, fn_name)
-            iterations = 1000
+    for fn_name, (payload, py_fn) in test_payloads.items():
+        try:
+            active_fn = getattr(text_processing, fn_name)
+
+            # benchmark active implementation (rust or python)
             start = _time.perf_counter()
             for _ in range(iterations):
-                fn(payload)
-            elapsed_us = ((_time.perf_counter() - start) / iterations) * 1_000_000
+                active_fn(payload)
+            active_us = ((_time.perf_counter() - start) / iterations) * 1_000_000
 
-            results.append(
-                {
-                    "function": fn_name,
-                    "backend": "rust_pyo3" if RUST_AVAILABLE else "python",
-                    "avg_us": round(elapsed_us, 2),
-                    "payload_bytes": len(payload.encode()),
-                    "iterations": iterations,
-                }
-            )
+            entry = {
+                "function": fn_name,
+                "backend": "rust_pyo3" if RUST_AVAILABLE else "python",
+                "avg_us": round(active_us, 2),
+                "payload_bytes": len(payload.encode()),
+                "iterations": iterations,
+            }
+
+            # benchmark python fallback for comparison when rust is active
+            if RUST_AVAILABLE:
+                start = _time.perf_counter()
+                for _ in range(iterations):
+                    py_fn(payload)
+                py_us = ((_time.perf_counter() - start) / iterations) * 1_000_000
+
+                entry["python_avg_us"] = round(py_us, 2)
+                entry["speedup"] = f"{py_us / active_us:.1f}x" if active_us > 0 else "∞"
+
+            results.append(entry)
         except Exception as exc:
             results.append({"function": fn_name, "error": str(exc)[:100]})
 
