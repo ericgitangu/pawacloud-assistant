@@ -26,7 +26,7 @@ export function WelcomeScreen({ suggestions, onSelect }: WelcomeScreenProps) {
     {
       icon: FileText,
       title: "Upload Documents",
-      desc: "PDF, DOCX, JPG, or PNG — up to 10 MB",
+      desc: "Drop a PDF, DOCX, JPG, or PNG (≤10 MB) — summarize or translate",
     },
     {
       icon: Camera,
