@@ -4,14 +4,39 @@ import { User, Bot, Copy, Check } from "lucide-react";
 import { useState, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
+import type { ArtifactSummary } from "@/lib/api";
+import { ArtifactCard } from "@/components/ArtifactCard";
+import { ArtifactOutputBubble } from "@/components/ArtifactOutputBubble";
 
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-  isStreaming?: boolean;
-}
+export type Message =
+  | {
+      kind: "chat";
+      id: string;
+      role: "user" | "assistant";
+      content: string;
+      timestamp: Date;
+      isStreaming?: boolean;
+    }
+  | {
+      kind: "document";
+      id: string;
+      role: "user";
+      artifact: ArtifactSummary;
+      action: "summarize" | "translate";
+      targetLang: string;
+      timestamp: Date;
+    }
+  | {
+      kind: "document";
+      id: string;
+      role: "assistant";
+      content: string;
+      isStreaming?: boolean;
+      filename: string;
+      action: "summarize" | "translate";
+      targetLang: string;
+      timestamp: Date;
+    };
 
 interface MessageBubbleProps {
   message: Message;
@@ -20,13 +45,38 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message, userPicture }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false);
-  const isUser = message.role === "user";
-
+  // content only exists on chat+assistant; safe to read here — hook must be unconditional
+  const chatContent = message.kind === "chat" ? message.content : "";
   const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(message.content);
+    await navigator.clipboard.writeText(chatContent);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [message.content]);
+  }, [chatContent]);
+
+  if (message.kind === "document" && message.role === "user") {
+    return (
+      <ArtifactCard
+        artifact={message.artifact}
+        action={message.action}
+        targetLang={message.targetLang}
+      />
+    );
+  }
+
+  if (message.kind === "document" && message.role === "assistant") {
+    return (
+      <ArtifactOutputBubble
+        content={message.content}
+        isStreaming={message.isStreaming}
+        filename={message.filename}
+        action={message.action}
+        targetLang={message.targetLang}
+        timestamp={message.timestamp}
+      />
+    );
+  }
+
+  const isUser = message.role === "user";
 
   return (
     <div

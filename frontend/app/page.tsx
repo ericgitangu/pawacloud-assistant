@@ -15,17 +15,12 @@ import {
   clearHistory,
   deleteHistoryItem,
   exchangeOAuthToken,
+  streamDocumentProcess,
 } from "@/lib/api";
-import type { HistoryItem } from "@/lib/api";
+import type { HistoryItem, ArtifactSummary, ProcessAction } from "@/lib/api";
 import { useAuth } from "@/providers/AuthProvider";
-
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-  isStreaming?: boolean;
-}
+import type { Message } from "@/components/MessageBubble";
+import { DocumentUploadDialog } from "@/components/DocumentUploadDialog";
 
 export default function Home() {
   return (
@@ -44,6 +39,7 @@ function HomeContent() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [lastQuery, setLastQuery] = useState<string | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,12 +59,14 @@ function HomeContent() {
         const restored: Message[] = [];
         for (const item of chronological) {
           restored.push({
+            kind: "chat",
             id: `${item.id}-q`,
             role: "user",
             content: item.query,
             timestamp: new Date(item.created_at),
           });
           restored.push({
+            kind: "chat",
             id: `${item.id}-a`,
             role: "assistant",
             content: item.response,
@@ -153,6 +151,7 @@ function HomeContent() {
       setLastQuery(query);
 
       const userMsg: Message = {
+        kind: "chat",
         id: crypto.randomUUID(),
         role: "user",
         content: query,
@@ -161,6 +160,7 @@ function HomeContent() {
 
       const assistantId = crypto.randomUUID();
       const assistantMsg: Message = {
+        kind: "chat",
         id: assistantId,
         role: "assistant",
         content: "",
@@ -176,7 +176,7 @@ function HomeContent() {
         (chunk) => {
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === assistantId
+              msg.id === assistantId && msg.kind === "chat"
                 ? { ...msg, content: msg.content + chunk }
                 : msg,
             ),
@@ -185,7 +185,9 @@ function HomeContent() {
         () => {
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === assistantId ? { ...msg, isStreaming: false } : msg,
+              msg.id === assistantId && msg.kind === "chat"
+                ? { ...msg, isStreaming: false }
+                : msg,
             ),
           );
           setIsLoading(false);
@@ -194,7 +196,7 @@ function HomeContent() {
         (errorMsg) => {
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === assistantId
+              msg.id === assistantId && msg.kind === "chat"
                 ? {
                     ...msg,
                     content: `${errorMsg}\n\nCheck that the backend is running and the API key is configured.`,
@@ -214,12 +216,14 @@ function HomeContent() {
   const handleLoadFromHistory = useCallback((item: HistoryItem) => {
     const restored: Message[] = [
       {
+        kind: "chat",
         id: `${item.id}-q`,
         role: "user",
         content: item.query,
         timestamp: new Date(item.created_at),
       },
       {
+        kind: "chat",
         id: `${item.id}-a`,
         role: "assistant",
         content: item.response,
@@ -229,6 +233,93 @@ function HomeContent() {
     setMessages((prev) => [...prev, ...restored]);
     setShowHistory(false);
   }, []);
+
+  const handleArtifactReady = useCallback(
+    async (artifact: ArtifactSummary, action: ProcessAction, targetLang: string) => {
+      const userId = crypto.randomUUID();
+      const assistantId = crypto.randomUUID();
+      const userMsg: Message = {
+        kind: "document",
+        id: userId,
+        role: "user",
+        artifact,
+        action,
+        targetLang,
+        timestamp: new Date(),
+      };
+      const assistantMsg: Message = {
+        kind: "document",
+        id: assistantId,
+        role: "assistant",
+        content: "",
+        isStreaming: true,
+        filename: artifact.filename,
+        action,
+        targetLang,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, userMsg, assistantMsg]);
+      setIsLoading(true);
+
+      await streamDocumentProcess(artifact.id, action, targetLang, (ev) => {
+        switch (ev.type) {
+          case "cache_hit":
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId &&
+                m.kind === "document" &&
+                m.role === "assistant"
+                  ? { ...m, content: ev.content }
+                  : m,
+              ),
+            );
+            toast.info("Loaded from cache.");
+            break;
+          case "chunk":
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId &&
+                m.kind === "document" &&
+                m.role === "assistant"
+                  ? { ...m, content: m.content + ev.text }
+                  : m,
+              ),
+            );
+            break;
+          case "done":
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId &&
+                m.kind === "document" &&
+                m.role === "assistant"
+                  ? { ...m, isStreaming: false }
+                  : m,
+              ),
+            );
+            setIsLoading(false);
+            toast.success(
+              action === "summarize" ? "Summary ready." : "Translation ready.",
+            );
+            loadHistory();
+            break;
+          case "error":
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId &&
+                m.kind === "document" &&
+                m.role === "assistant"
+                  ? { ...m, content: ev.message, isStreaming: false }
+                  : m,
+              ),
+            );
+            setIsLoading(false);
+            toast.error("Something went wrong. Try again.");
+            break;
+        }
+      });
+    },
+    [loadHistory],
+  );
 
   const suggestedQueries = [
     "What documents do I need to travel from Kenya to Ireland?",
@@ -312,7 +403,11 @@ function HomeContent() {
 
           <div className="border-t border-[var(--border)] bg-[var(--background)]/80 px-4 py-4 backdrop-blur-sm">
             <div className="mx-auto max-w-3xl">
-              <ChatInput onSend={handleSend} isLoading={isLoading} />
+              <ChatInput
+                onSend={handleSend}
+                isLoading={isLoading}
+                onAttach={() => setUploadOpen(true)}
+              />
               <p className="mt-2 text-center text-xs text-[var(--muted-foreground)]/60">
                 Responses are generated by AI and may not always be accurate.
               </p>
@@ -323,6 +418,11 @@ function HomeContent() {
         </main>
       </div>
 
+      <DocumentUploadDialog
+        open={uploadOpen}
+        onOpenChange={setUploadOpen}
+        onReady={handleArtifactReady}
+      />
     </div>
   );
 }
