@@ -3,9 +3,11 @@
 
 import logging
 from datetime import UTC, datetime
+from typing import Literal
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
+from fastapi.responses import StreamingResponse
 
 from app.core.config import get_settings
 from app.core.decorators import log_latency
@@ -172,3 +174,166 @@ async def _persist_artifact(
             )
     except Exception as exc:
         logger.warning("artifact persist failed: %s", exc)
+
+
+@router.get(
+    "/documents/{artifact_id}/process",
+    summary="Stream summarize/translate output for an uploaded artifact",
+)
+async def process_document(
+    request: Request,
+    artifact_id: UUID,
+    action: Literal["summarize", "translate"] = Query(...),
+    lang: str = Query(..., min_length=2, max_length=64),
+):
+    user = _require_auth(request)
+
+    artifact = await _load_artifact_text(artifact_id, user.get("email", "anonymous"))
+    if artifact is None:
+        raise HTTPException(status_code=404, detail="Artifact not found")
+
+    parsed_text, source_lang, filename = artifact
+
+    from app.services.document_service import stream_with_cache
+
+    async def _gen():
+        async for line in stream_with_cache(
+            request=request,
+            artifact_id=artifact_id,
+            parsed_text=parsed_text,
+            source_lang=source_lang,
+            action=action,
+            target_lang=lang,
+            output_cache_get=_output_cache_get,
+            output_cache_set=_output_cache_set,
+            history_persist=_history_persist_factory(filename, request),
+        ):
+            if await request.is_disconnected():
+                return
+            yield line
+
+    return StreamingResponse(
+        _gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+async def _load_artifact_text(
+    artifact_id: UUID, owner: str
+) -> tuple[str, str | None, str] | None:
+    from app.core.database import get_pool
+
+    pool = get_pool()
+    if not pool:
+        return None
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """SELECT parsed_text, source_lang, filename
+                   FROM artifacts WHERE id = $1 AND owner_email = $2""",
+                artifact_id,
+                owner,
+            )
+            if not row:
+                return None
+            return row["parsed_text"], row["source_lang"], row["filename"]
+    except Exception as exc:
+        logger.warning("artifact load failed: %s", exc)
+        return None
+
+
+async def _output_cache_get(artifact_id: UUID, action: str, lang: str) -> str | None:
+    from app.core.database import get_pool
+
+    pool = get_pool()
+    if not pool:
+        return None
+    try:
+        async with pool.acquire() as conn:
+            return await conn.fetchval(
+                """SELECT content FROM artifact_outputs
+                   WHERE artifact_id = $1 AND action = $2 AND target_lang = $3""",
+                artifact_id,
+                action,
+                lang,
+            )
+    except Exception:
+        return None
+
+
+async def _output_cache_set(
+    artifact_id: UUID,
+    action: str,
+    lang: str,
+    content: str,
+    model: str,
+    tokens: int | None,
+) -> None:
+    from app.core.database import get_pool
+
+    pool = get_pool()
+    if not pool:
+        return
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute(
+                """INSERT INTO artifact_outputs (id, artifact_id, action, target_lang, content, model, tokens_used)
+                   VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6)
+                   ON CONFLICT (artifact_id, action, target_lang)
+                   DO UPDATE SET content = EXCLUDED.content,
+                                 model = EXCLUDED.model,
+                                 tokens_used = EXCLUDED.tokens_used,
+                                 created_at = now()""",
+                artifact_id,
+                action,
+                lang,
+                content,
+                model,
+                tokens,
+            )
+    except Exception as exc:
+        logger.warning("output cache write failed: %s", exc)
+
+
+def _history_persist_factory(filename: str, request: Request):
+    """Closure that writes a 'document' history row when the stream finishes."""
+    from app.routers.chat import _history_key
+
+    sid = _history_key(request)
+
+    async def _persist(
+        artifact_id: UUID,
+        action: str,
+        lang: str,
+        label: str,
+        content: str,
+        model: str,
+        tokens: int | None,
+    ) -> None:
+        from app.core.database import get_pool
+
+        pool = get_pool()
+        if not pool:
+            return
+        try:
+            async with pool.acquire() as conn:
+                await conn.execute(
+                    """INSERT INTO conversations
+                       (id, session_id, query, response, model, tokens_used, kind, artifact_id)
+                       VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, 'document', $6)""",
+                    sid,
+                    f"{label} · {filename}",
+                    content,
+                    model,
+                    tokens,
+                    artifact_id,
+                )
+        except Exception as exc:
+            logger.warning("history persist (document) failed: %s", exc)
+
+    return _persist

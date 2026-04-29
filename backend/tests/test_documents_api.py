@@ -114,3 +114,26 @@ class TestDocumentUpload:
         assert resp.status_code == 200
         assert resp.json()["id"] == str(cached_id)
         assert resp.json()["parsed_preview"] == "cached preview"
+
+
+class TestDocumentProcess:
+    def test_unknown_artifact_returns_404(self, authed_client):
+        resp = authed_client.get(
+            "/api/v1/documents/00000000-0000-0000-0000-000000000000/process",
+            params={"action": "summarize", "lang": "en"},
+        )
+        assert resp.status_code == 404
+
+    def test_invalid_action_rejected(self, authed_client):
+        resp = authed_client.get(
+            "/api/v1/documents/00000000-0000-0000-0000-000000000000/process",
+            params={"action": "translate-and-summarize", "lang": "en"},
+        )
+        assert resp.status_code == 422
+
+    def test_unauthenticated_rejected(self, client):
+        resp = client.get(
+            "/api/v1/documents/00000000-0000-0000-0000-000000000000/process",
+            params={"action": "summarize", "lang": "en"},
+        )
+        assert resp.status_code == 401
