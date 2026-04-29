@@ -9,6 +9,7 @@ from fastapi import APIRouter
 
 from app.core.config import get_settings
 from app.services.text_processing import RUST_AVAILABLE
+from app.core.events import EVENT_REGISTRY, event_counts
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -97,6 +98,16 @@ async def llm_health():
         }
 
 
+@router.get("/health/events", summary="Event registry introspection", tags=["Health"])
+async def events_registry():
+    """Lists every event code the document pipeline can emit, with descriptions."""
+    return {
+        "registered": [str(code) for code in EVENT_REGISTRY],
+        "descriptions": {str(code): desc for code, desc in EVENT_REGISTRY.items()},
+        "counts_since_start": event_counts(),
+    }
+
+
 @router.get("/health/metrics", summary="Backend performance metrics", tags=["Health"])
 async def metrics():
     """PyO3 vs Python benchmarks, service uptime, and Redis health."""
@@ -110,11 +121,17 @@ async def metrics():
 
     pg_info = await _pg_metrics()
 
+    events_block = {
+        "registered": [str(code) for code in EVENT_REGISTRY],
+        "counts_since_start": event_counts(),
+    }
+
     return {
         "uptime_seconds": round(uptime_secs, 1),
         "boot_time": _BOOT_TIMESTAMP.isoformat(),
         "rust_native": RUST_AVAILABLE,
         "benchmarks": benchmarks,
+        "events": events_block,
         "redis": redis_info,
         "postgres": pg_info,
         "timestamp": datetime.now(UTC).isoformat(),
@@ -179,6 +196,70 @@ def _run_pyo3_benchmarks() -> list[dict]:
                 start = _time.perf_counter()
                 for _ in range(iterations):
                     py_fn(payload)
+                py_us = ((_time.perf_counter() - start) / iterations) * 1_000_000
+
+                entry["python_avg_us"] = round(py_us, 2)
+                entry["speedup"] = f"{py_us / active_us:.1f}x" if active_us > 0 else "∞"
+
+            results.append(entry)
+        except Exception as exc:
+            results.append({"function": fn_name, "error": str(exc)[:100]})
+
+    from app.services import document_processing
+    from app.services.document_processing import (
+        _py_sha256_hex,
+        _py_detect_script,
+        _py_normalize_document_text,
+        _py_chunk_markdown,
+    )
+
+    document_payloads = {
+        "sha256_hex": (b"The quick brown fox " * 500, _py_sha256_hex),
+        "detect_script": (
+            "hello world this is a sample document " * 50,
+            _py_detect_script,
+        ),
+        "normalize_document_text": (
+            "Para one with text.\n\n\nPara two with more text.\n" * 30,
+            _py_normalize_document_text,
+        ),
+        "chunk_markdown": (
+            "## Heading\n\nParagraph content here.\n\n" * 40,
+            _py_chunk_markdown,
+        ),
+    }
+
+    for fn_name, (payload, py_fn) in document_payloads.items():
+        try:
+            active_fn = getattr(document_processing, fn_name)
+
+            extra_args: tuple = ()
+            if fn_name == "detect_script":
+                extra_args = (1024,)
+            elif fn_name == "chunk_markdown":
+                extra_args = (200,)
+
+            start = _time.perf_counter()
+            for _ in range(iterations):
+                active_fn(payload, *extra_args)
+            active_us = ((_time.perf_counter() - start) / iterations) * 1_000_000
+
+            entry = {
+                "function": fn_name,
+                "backend": "rust_pyo3"
+                if document_processing.RUST_DOCUMENT_AVAILABLE
+                else "python",
+                "avg_us": round(active_us, 2),
+                "payload_bytes": len(payload)
+                if isinstance(payload, bytes)
+                else len(payload.encode()),
+                "iterations": iterations,
+            }
+
+            if document_processing.RUST_DOCUMENT_AVAILABLE:
+                start = _time.perf_counter()
+                for _ in range(iterations):
+                    py_fn(payload, *extra_args)
                 py_us = ((_time.perf_counter() - start) / iterations) * 1_000_000
 
                 entry["python_avg_us"] = round(py_us, 2)

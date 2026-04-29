@@ -17,6 +17,11 @@ already in the codebase; isolates only what genuinely needs isolating.
 
 - Users upload `.pdf` or `.docx` (≤10 MB, ≤100 pages), then run **summarize** or
   **translate** against it.
+- Mobile users can also capture an image directly via the device camera
+  (`.jpg`/`.png`, ≤8 MB) and OCR it through the same pipeline. A client-side
+  blur check (Laplacian variance) gates the submit button — only sufficiently
+  sharp images are accepted, with a visible "Looks clear" / "Try a steadier
+  shot" cue.
 - Summarize: same source language by default, or any of 12 curated targets +
   free-text fallback.
 - Translate: any of the 12 curated targets + free-text fallback.
@@ -132,7 +137,10 @@ class ArtifactSummary(BaseModel):
     char_count: int
     source_lang: str | None
     parsed_preview: str           # first ~800 chars, sanitized
-    parse_method: Literal["docx","pdf-text","pdf-ocr","pdf-empty"]
+    parse_method: Literal[
+        "docx","pdf-text","pdf-ocr","pdf-empty",
+        "image-ocr","image-empty",
+    ]
     warnings: list[ArtifactWarning]
     created_at: datetime
 
@@ -158,7 +166,7 @@ maintained by reviewing the Python schemas, same as the existing pattern.
 python-multipart==0.0.20
 python-docx==1.2.0
 pypdf==5.7.0
-google-cloud-vision==3.10.2     # lazy-imported only when scan detected
+google-cloud-vision==3.10.2     # used for scanned PDFs and camera images
 ```
 
 No Tesseract, no WeasyPrint, no reportlab — image stays trim.
@@ -167,34 +175,56 @@ No Tesseract, no WeasyPrint, no reportlab — image stays trim.
 
 ```
 upload (multipart)
-  → validate(mime ∈ {pdf,docx}, byte_size ≤ 10MB)
+  → validate(mime ∈ {pdf, docx, image/jpeg, image/png},
+             byte_size ≤ {pdf,docx: 10MB; image: 8MB})
   → sha256(bytes) ──→ artifacts(owner_email, sha256) hit?
                       ├─ yes → return cached ArtifactSummary
                       └─ no  ↓
   → dispatch:
-      docx → python-docx → join paragraphs + tables → text
-      pdf  → pypdf       → page-by-page text concat
+      docx  → python-docx → join paragraphs + tables → text
+      pdf   → pypdf       → page-by-page text concat
               → if char_count / page_count < 40:
                    try google-cloud-vision (lazy)
                      ├─ ok    → ocr_text, parse_method='pdf-ocr'
                      └─ fail  → '', warning='scanned_no_ocr',
                                    parse_method='pdf-empty'
                  else: parse_method='pdf-text'
+      image → google-cloud-vision DOCUMENT_TEXT_DETECTION on raw bytes
+              ├─ text returned    → parse_method='image-ocr'
+              └─ empty / err      → '', warning='ocr_no_text',
+                                       parse_method='image-empty'
   → sanitize_input + normalize_document_text     (Rust + Py fallback)
   → detect_script(first 4kB)                     (Rust + Py fallback)
   → write artifacts row + Redis cache
   → return ArtifactSummary
 ```
 
+### 4.3 Camera capture + blur gate (frontend)
+
+Mobile users can attach an image straight from the camera via
+`<input type="file" accept="image/jpeg,image/png" capture="environment">`.
+On selection, the file is loaded into an `Image` element, drawn on a
+hidden `<canvas>`, and `getImageData` runs through a Laplacian-variance
+blur estimator (`lib/blurDetect.ts`):
+
+- variance ≥ 100 → "Looks clear ✓" (green pill, submit enabled, haptic tap)
+- 60 ≤ variance < 100 → "A little soft — try again?" (yellow, submit still allowed)
+- variance < 60 → "Try a steadier shot" (red, submit disabled, haptic warn)
+
+Threshold is exposed as a constant for tuning. Detection runs on a
+640 px-wide downscale of the source for sub-100 ms perf even on mobile.
+
 ### 4.3 Generic error toasts
 
 | Internal | User-facing toast |
 |---|---|
-| Unsupported mime | `"Only .pdf and .docx files are supported."` |
-| File > 10 MB | `"That file is over the 10 MB limit."` |
+| Unsupported mime | `"Only PDF, DOCX, JPG, or PNG are supported."` |
+| File over size cap | `"That file is over the size limit."` |
 | pypdf throws | `"Couldn't read this PDF. Try re-saving it from the source."` |
-| Vision API failure | `"OCR is unavailable right now — text-based PDFs still work."` |
+| Vision API failure (PDF) | `"OCR is unavailable right now — text-based PDFs still work."` |
+| Vision API failure (image) | `"Couldn't read that image. Try a clearer photo."` |
 | Empty after parse | `"This document appears to have no extractable text."` |
+| Image too blurry to submit | `"Try a steadier shot — text needs to be in focus."` |
 
 Server logs the exception; client only sees these strings.
 
@@ -321,11 +351,13 @@ These ship into `frontend/components/ui/*` and are not hand-edited.
 ### 8.2 Custom components
 
 ```
-DocumentUploadDialog.tsx     drag-drop zone, action picker, language picker
+DocumentUploadDialog.tsx     two-tab dialog: File / Camera
 ArtifactCard.tsx             user bubble — filename, size, action, lang chips
 ArtifactOutputBubble.tsx     assistant bubble — markdown stream + DownloadMenu
 DownloadMenu.tsx             4 download formats, lazy-loaded renderers
 LanguagePicker.tsx           12 chips + "Other…" sheet
+CameraCapture.tsx            camera input, preview, blur cue, submit gate
+lib/blurDetect.ts            Laplacian variance via OffscreenCanvas
 lib/haptics.ts               navigator.vibrate wrappers
 lib/toast.ts                 sonner wrapper, paired with haptics
 lib/render/docx.ts           lazy: marked → docx → Blob

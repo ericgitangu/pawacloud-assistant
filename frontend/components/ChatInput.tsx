@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Paperclip } from "lucide-react";
 
 interface ChatInputProps {
   onSend: (query: string) => void;
+  onAttach?: () => void;
   isLoading: boolean;
 }
 
-export function ChatInput({ onSend, isLoading }: ChatInputProps) {
+export function ChatInput({ onSend, onAttach, isLoading }: ChatInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -53,6 +54,17 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
       className="relative flex items-end gap-2 rounded-2xl border border-[var(--border)] bg-[var(--card)]/60 p-2 shadow-lg transition-colors focus-within:border-pawa-cyan/40 focus-within:shadow-pawa-cyan/5"
       aria-busy={isLoading}
     >
+      {onAttach && (
+        <button
+          type="button"
+          onClick={onAttach}
+          title="Attach document"
+          aria-label="Attach document"
+          className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)]/40 hover:text-[var(--foreground)]"
+        >
+          <Paperclip className="h-4 w-4" />
+        </button>
+      )}
       <textarea
         ref={textareaRef}
         value={input}

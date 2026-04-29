@@ -56,8 +56,55 @@ async def init_db():
                 CREATE INDEX IF NOT EXISTS idx_conversations_session
                 ON conversations (session_id, created_at DESC)
             """)
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS artifacts (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    sha256 CHAR(64) NOT NULL,
+                    owner_email TEXT NOT NULL,
+                    filename TEXT NOT NULL,
+                    mime TEXT NOT NULL,
+                    byte_size INTEGER NOT NULL,
+                    page_count INTEGER NOT NULL,
+                    char_count INTEGER NOT NULL,
+                    source_lang TEXT,
+                    parsed_text TEXT NOT NULL,
+                    parse_method TEXT NOT NULL,
+                    warnings JSONB DEFAULT '[]'::jsonb,
+                    created_at TIMESTAMPTZ DEFAULT now()
+                )
+            """)
+            await conn.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_artifacts_owner_sha
+                ON artifacts (owner_email, sha256)
+            """)
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS artifact_outputs (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    artifact_id UUID NOT NULL REFERENCES artifacts(id) ON DELETE CASCADE,
+                    action TEXT NOT NULL,
+                    target_lang TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    model TEXT NOT NULL,
+                    tokens_used INTEGER,
+                    created_at TIMESTAMPTZ DEFAULT now()
+                )
+            """)
+            await conn.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_outputs_artifact_action_lang
+                ON artifact_outputs (artifact_id, action, target_lang)
+            """)
+            await conn.execute("""
+                ALTER TABLE conversations
+                ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'chat'
+            """)
+            await conn.execute("""
+                ALTER TABLE conversations
+                ADD COLUMN IF NOT EXISTS artifact_id UUID REFERENCES artifacts(id) ON DELETE SET NULL
+            """)
 
-        logger.info("postgres connected, users table ready")
+        logger.info(
+            "postgres connected, schema ready (users + conversations + artifacts)"
+        )
     except Exception as exc:
         logger.warning("postgres unavailable — email/password auth disabled: %s", exc)
         _pool = None

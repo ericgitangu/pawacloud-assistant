@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans, DM_Mono, Cormorant_Garamond } from "next/font/google";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -78,6 +79,17 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <AuthProvider>{children}</AuthProvider>
+          <Toaster
+            position="bottom-center"
+            richColors
+            closeButton
+            toastOptions={{
+              classNames: {
+                toast:
+                  "rounded-xl border border-[var(--border)] bg-[var(--card)]/90 backdrop-blur-md",
+              },
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>

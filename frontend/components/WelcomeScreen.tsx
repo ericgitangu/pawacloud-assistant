@@ -1,6 +1,6 @@
 "use client";
 
-import { Cloud, Zap, Shield, Globe } from "lucide-react";
+import { Cloud, FileText, Languages, Camera } from "lucide-react";
 import { FadeIn, Stagger, StaggerItem } from "@/components/FadeIn";
 import { SystemStatus } from "@/components/SystemStatus";
 
@@ -13,23 +13,23 @@ export function WelcomeScreen({ suggestions, onSelect }: WelcomeScreenProps) {
   const features = [
     {
       icon: Cloud,
-      title: "Cloud Infrastructure",
-      desc: "GCP, AWS, Azure — architecture and deployment",
+      title: "Ask Anything",
+      desc: "Cloud, code, news, travel — streamed answers",
     },
     {
-      icon: Zap,
-      title: "Fast Answers",
-      desc: "Real-time streamed responses as you watch",
+      icon: FileText,
+      title: "Upload & Transform",
+      desc: "PDF, DOCX, JPG, PNG — up to 10 MB",
     },
     {
-      icon: Shield,
-      title: "Best Practices",
-      desc: "Security, cost optimisation, and scaling tips",
+      icon: Languages,
+      title: "Translate + Summarize",
+      desc: "12 curated languages or your own",
     },
     {
-      icon: Globe,
-      title: "Multilingual",
-      desc: "English, Swahili, French, and 100+ languages",
+      icon: Camera,
+      title: "Camera-Friendly",
+      desc: "Snap a photo, OCR it, share the result",
     },
   ];
 
@@ -46,8 +46,8 @@ export function WelcomeScreen({ suggestions, onSelect }: WelcomeScreenProps) {
           {/* cyan gradient divider */}
           <div className="mx-auto mb-4 h-px w-16 bg-gradient-to-r from-pawa-cyan to-transparent" />
           <p className="max-w-md text-sm text-[var(--muted-foreground)]">
-            Ask about cloud infrastructure, travel documents, Kenyan news, code
-            reviews, or anything else on your mind.
+            Ask anything — cloud, code, travel docs, Kenyan news. Or attach a PDF,
+            Word doc, or photo and let it translate, summarize, or both.
           </p>
         </div>
       </FadeIn>
