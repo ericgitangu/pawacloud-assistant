@@ -18,6 +18,8 @@ cd ..
 
 if [ -d "rust-core" ] && command -v cargo >/dev/null 2>&1; then
   cd rust-core
-  cargo test || exit 1
+  # --lib only — cdylib needs Python linkage that maturin sets up,
+  # which we don't want to require for git-push hygiene checks
+  cargo test --lib || exit 1
   cd ..
 fi
