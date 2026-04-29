@@ -110,8 +110,11 @@ function HomeContent() {
       prevUserRef.current !== undefined && prevUserRef.current !== uid;
     prevUserRef.current = uid;
     if (isFirstLoad || authChanged) {
+      // load the history list for the panel, but DON'T dump it into the chat
+      // view — the welcome cards should be the landing surface until the user
+      // explicitly clicks a history item
       // eslint-disable-next-line react-hooks/set-state-in-effect -- async fetch, not synchronous cascade
-      loadHistory(true);
+      loadHistory(false);
     }
   }, [authLoading, loadHistory, user]);
 
