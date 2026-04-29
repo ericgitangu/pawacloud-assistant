@@ -137,3 +137,33 @@ class TestDocumentProcess:
             params={"action": "summarize", "lang": "en"},
         )
         assert resp.status_code == 401
+
+
+class TestDocumentProcessCacheHit:
+    def test_cache_hit_emits_cache_hit_event(self, authed_client, monkeypatch):
+        from uuid import UUID
+
+        from app.routers import documents as docs_router
+
+        artifact_id = UUID("11111111-1111-1111-1111-111111111111")
+
+        async def _load(aid, owner):
+            return ("sample document text", "en", "sample.pdf")
+
+        async def _cached(aid, action, lang):
+            return "## Cached summary\n\nThis is cached."
+
+        monkeypatch.setattr(docs_router, "_load_artifact_text", _load)
+        monkeypatch.setattr(docs_router, "_output_cache_get", _cached)
+
+        resp = authed_client.get(
+            f"/api/v1/documents/{artifact_id}/process",
+            params={"action": "summarize", "lang": "en"},
+        )
+        assert resp.status_code == 200
+        body = resp.text
+        assert '"type": "cache_hit"' in body
+        assert '"type": "done"' in body
+        assert "Cached summary" in body
+        # cache hit means LLM never streams chunks
+        assert '"type": "chunk"' not in body
