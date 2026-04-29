@@ -1,0 +1,28 @@
+name: Feature request
+description: Suggest a new capability or an improvement
+labels: ["enhancement"]
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One line describing the feature
+      placeholder: "Add Tagalog to the curated language list"
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why
+      description: What problem does this solve? Who's it for?
+    validations:
+      required: true
+  - type: textarea
+    id: shape
+    attributes:
+      label: Rough shape
+      description: API, UX, or implementation sketch — bullets are fine
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
