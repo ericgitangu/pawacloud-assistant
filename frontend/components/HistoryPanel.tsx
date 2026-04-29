@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { PanelLeftClose, Trash2, MessageSquare, Clock, X } from "lucide-react";
+import { PanelLeftClose, Trash2, MessageSquare, Clock, X, Paperclip } from "lucide-react";
 import type { HistoryItem } from "@/lib/api";
 
 interface HistoryPanelProps {
@@ -82,7 +82,12 @@ export function HistoryPanel({
                   onClick={() => onSelect(item)}
                   className="w-full rounded-lg p-3 text-left transition-colors hover:bg-[var(--muted)]/20"
                 >
-                  <p className="mb-1 truncate text-sm pr-6">{item.query}</p>
+                  <p className="mb-1 flex items-center gap-1.5 truncate pr-6 text-sm">
+                    {item.kind === "document" && (
+                      <Paperclip className="h-3.5 w-3.5 shrink-0 text-pawa-cyan" />
+                    )}
+                    {item.query}
+                  </p>
                   <p className="truncate text-xs text-[var(--muted-foreground)]/60">
                     {item.response.slice(0, 80)}...
                   </p>
