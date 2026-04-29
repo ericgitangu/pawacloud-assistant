@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 PDF_MIME = "application/pdf"
+JPEG_MIME = "image/jpeg"
+PNG_MIME = "image/png"
+IMAGE_MIMES = {JPEG_MIME, PNG_MIME}
 
 
 @dataclass
@@ -40,6 +43,8 @@ def parse_document(raw: bytes, filename: str, mime: str) -> ParsedDocument:
         return _parse_docx(raw)
     if mime == PDF_MIME or filename.lower().endswith(".pdf"):
         return _parse_pdf(raw)
+    if mime in IMAGE_MIMES or filename.lower().endswith((".jpg", ".jpeg", ".png")):
+        return _parse_image(raw, mime)
     raise ValueError(f"unsupported mime: {mime}")
 
 
@@ -145,6 +150,56 @@ def _parse_pdf(raw: bytes) -> ParsedDocument:
         parse_method=parse_method,
         warnings=warnings,
     )
+
+
+def _parse_image(raw: bytes, mime: str) -> ParsedDocument:
+    """OCR a single still image via Cloud Vision DOCUMENT_TEXT_DETECTION."""
+    text = _try_vision_ocr_image(raw, mime) or ""
+    text = normalize_document_text(sanitize_input(text))
+
+    parse_method = "image-ocr" if text.strip() else "image-empty"
+    warnings: list[dict] = []
+    if parse_method == "image-empty":
+        warnings.append(
+            {
+                "code": "scanned_no_ocr",
+                "message": "Couldn't read text from the image. Try a clearer photo.",
+            }
+        )
+
+    return ParsedDocument(
+        text=text,
+        page_count=1,
+        char_count=len(text),
+        source_lang=detect_script(text, 4096) if text else None,
+        parse_method=parse_method,
+        warnings=warnings,
+    )
+
+
+def _try_vision_ocr_image(raw: bytes, _mime: str) -> str | None:
+    """Sync OCR for image bytes. Returns None on any failure (logged, not raised)."""
+    try:
+        from app.core.config import get_settings
+
+        settings = get_settings()
+        if not settings.GOOGLE_VISION_KEY_PATH:
+            return None
+
+        from google.cloud import vision
+
+        client = vision.ImageAnnotatorClient.from_service_account_json(
+            settings.GOOGLE_VISION_KEY_PATH
+        )
+        image = vision.Image(content=raw)
+        resp = client.document_text_detection(image=image)
+        if resp.error.message:
+            logger.warning("vision image ocr error: %s", resp.error.message)
+            return None
+        return resp.full_text_annotation.text or None
+    except Exception as exc:
+        logger.warning("vision image ocr failed: %s", exc)
+        return None
 
 
 def _approx_page_count(text: str) -> int:

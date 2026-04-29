@@ -78,6 +78,25 @@ class TestDocumentUpload:
         data = resp.json()
         assert data["parse_method"] == "pdf-text"
 
+    def test_image_jpeg_accepted(self, authed_client, monkeypatch):
+        from app.services import document_service as ds
+
+        monkeypatch.setattr(ds, "_try_vision_ocr_image", lambda raw, mime: "ocr text")
+        resp = authed_client.post(
+            "/api/v1/documents/upload",
+            files={"file": ("snap.jpg", b"\xff\xd8\xff binary", "image/jpeg")},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["parse_method"] == "image-ocr"
+
+    def test_image_oversize_rejected(self, authed_client):
+        big_image = b"\xff\xd8\xff" + b"x" * (8 * 1024 * 1024 + 1)
+        resp = authed_client.post(
+            "/api/v1/documents/upload",
+            files={"file": ("huge.jpg", big_image, "image/jpeg")},
+        )
+        assert resp.status_code == 413
+
     def test_dedupes_same_sha_for_same_owner(self, authed_client, monkeypatch):
         from datetime import UTC, datetime
         from uuid import UUID

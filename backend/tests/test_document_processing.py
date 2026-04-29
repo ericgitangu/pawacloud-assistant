@@ -97,3 +97,24 @@ def test_pdf_falls_back_to_ocr_warning_when_vision_unavailable():
 
     assert parsed.parse_method == "pdf-empty"
     assert any(w["code"] == "scanned_no_ocr" for w in parsed.warnings)
+
+
+def test_parse_image_calls_vision_when_configured(monkeypatch):
+    fake_text = "Hello from a photo."
+    monkeypatch.setattr(
+        "app.services.document_service._try_vision_ocr_image",
+        lambda raw, mime: fake_text,
+    )
+    parsed = parse_document(b"\xff\xd8\xff binary", "snap.jpg", "image/jpeg")
+    assert parsed.parse_method == "image-ocr"
+    assert "Hello from a photo" in parsed.text
+
+
+def test_parse_image_warns_when_vision_returns_nothing(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.document_service._try_vision_ocr_image",
+        lambda raw, mime: None,
+    )
+    parsed = parse_document(b"\xff\xd8\xff", "blurry.jpg", "image/jpeg")
+    assert parsed.parse_method == "image-empty"
+    assert any(w["code"] == "scanned_no_ocr" for w in parsed.warnings)

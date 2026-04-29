@@ -15,14 +15,19 @@ from app.models.schemas import ArtifactSummary, ArtifactWarning
 from app.services.document_processing import sha256_hex
 from app.services.document_service import (
     DOCX_MIME,
+    JPEG_MIME,
     PDF_MIME,
+    PNG_MIME,
     parse_document,
 )
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-ALLOWED_MIMES = {DOCX_MIME, PDF_MIME}
+DOCUMENT_MIMES = {DOCX_MIME, PDF_MIME}
+IMAGE_MIMES = {JPEG_MIME, PNG_MIME}
+ALLOWED_MIMES = DOCUMENT_MIMES | IMAGE_MIMES
+IMAGE_MAX_BYTES = 8 * 1024 * 1024  # 8 MB cap for camera images
 
 
 def _require_auth(request: Request) -> dict:
@@ -51,11 +56,16 @@ async def upload_document(
 
     mime = file.content_type or ""
     if mime not in ALLOWED_MIMES:
-        raise HTTPException(status_code=415, detail="Only .pdf and .docx are supported")
+        raise HTTPException(
+            status_code=415, detail="Only PDF, DOCX, JPG, or PNG are supported"
+        )
 
     raw = await file.read()
-    if len(raw) > settings.DOCUMENT_MAX_BYTES:
-        raise HTTPException(status_code=413, detail="File exceeds 10 MB limit")
+    is_image = mime in IMAGE_MIMES
+    cap = IMAGE_MAX_BYTES if is_image else settings.DOCUMENT_MAX_BYTES
+    if len(raw) > cap:
+        cap_mb = cap // (1024 * 1024)
+        raise HTTPException(status_code=413, detail=f"File over the {cap_mb} MB limit")
 
     sha = sha256_hex(raw)
     owner = user.get("email", "anonymous")
