@@ -205,6 +205,70 @@ def _run_pyo3_benchmarks() -> list[dict]:
         except Exception as exc:
             results.append({"function": fn_name, "error": str(exc)[:100]})
 
+    from app.services import document_processing
+    from app.services.document_processing import (
+        _py_sha256_hex,
+        _py_detect_script,
+        _py_normalize_document_text,
+        _py_chunk_markdown,
+    )
+
+    document_payloads = {
+        "sha256_hex": (b"The quick brown fox " * 500, _py_sha256_hex),
+        "detect_script": (
+            "hello world this is a sample document " * 50,
+            _py_detect_script,
+        ),
+        "normalize_document_text": (
+            "Para one with text.\n\n\nPara two with more text.\n" * 30,
+            _py_normalize_document_text,
+        ),
+        "chunk_markdown": (
+            "## Heading\n\nParagraph content here.\n\n" * 40,
+            _py_chunk_markdown,
+        ),
+    }
+
+    for fn_name, (payload, py_fn) in document_payloads.items():
+        try:
+            active_fn = getattr(document_processing, fn_name)
+
+            extra_args: tuple = ()
+            if fn_name == "detect_script":
+                extra_args = (1024,)
+            elif fn_name == "chunk_markdown":
+                extra_args = (200,)
+
+            start = _time.perf_counter()
+            for _ in range(iterations):
+                active_fn(payload, *extra_args)
+            active_us = ((_time.perf_counter() - start) / iterations) * 1_000_000
+
+            entry = {
+                "function": fn_name,
+                "backend": "rust_pyo3"
+                if document_processing.RUST_DOCUMENT_AVAILABLE
+                else "python",
+                "avg_us": round(active_us, 2),
+                "payload_bytes": len(payload)
+                if isinstance(payload, bytes)
+                else len(payload.encode()),
+                "iterations": iterations,
+            }
+
+            if document_processing.RUST_DOCUMENT_AVAILABLE:
+                start = _time.perf_counter()
+                for _ in range(iterations):
+                    py_fn(payload, *extra_args)
+                py_us = ((_time.perf_counter() - start) / iterations) * 1_000_000
+
+                entry["python_avg_us"] = round(py_us, 2)
+                entry["speedup"] = f"{py_us / active_us:.1f}x" if active_us > 0 else "∞"
+
+            results.append(entry)
+        except Exception as exc:
+            results.append({"function": fn_name, "error": str(exc)[:100]})
+
     return results
 
 
