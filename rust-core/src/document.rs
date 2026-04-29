@@ -109,6 +109,8 @@ pub fn normalize_document_text(raw: &str) -> String {
             }
         } else {
             blank_streak = 0;
+            // invariant: the blank-line branch always leaves at most one trailing '\n',
+            // so a single push here yields the desired '\n\n' paragraph separator.
             if !out.is_empty() {
                 out.push('\n');
             }
@@ -211,6 +213,15 @@ mod tests {
             normalize_document_text("line1\r\nline2\r\n\r\nline3"),
             "line1\nline2\n\nline3"
         );
+    }
+
+    #[test]
+    fn normalize_handles_leading_blank_lines() {
+        // documents that start with blank lines should drop them entirely,
+        // not produce a leading "\n" — the trim_matches at the end + the
+        // !out.is_empty() guard on the blank-streak path together cover this.
+        assert_eq!(normalize_document_text("\n\nfoo"), "foo");
+        assert_eq!(normalize_document_text("\n\n\n\nfoo\n\nbar"), "foo\n\nbar");
     }
 
     #[test]
