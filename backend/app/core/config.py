@@ -77,15 +77,6 @@ class Settings(BaseSettings):
     OAUTH_REDIRECT_URI: str = Field(default="http://localhost:8000/auth/callback")
     FRONTEND_URL: str = Field(default="http://localhost:3000")
 
-    # domain whitelist — employees skip signup, get a 60-min session
-    GUEST_PASS_DOMAINS: list[str] = Field(
-        default=["pawait.co.ke"],
-        description="Email domains that get frictionless guest access",
-    )
-    GUEST_PASS_TTL: int = Field(
-        default=3600, description="Guest pass session TTL in seconds (60 min)"
-    )
-
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

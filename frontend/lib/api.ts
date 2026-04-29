@@ -252,23 +252,6 @@ export async function signupWithEmail(
   return data;
 }
 
-export async function activateGuestPass(
-  email: string,
-): Promise<AuthResponse & { ttl_minutes: number }> {
-  const res = await fetch(`${API_BASE}/auth/guest-pass`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: "Guest pass failed" }));
-    throw new Error(err.detail || `Guest pass error: ${res.status}`);
-  }
-  const data = await res.json();
-  if (data.session_token) storeToken(data.session_token);
-  return data;
-}
-
 export async function loginWithEmail(
   email: string,
   password: string,

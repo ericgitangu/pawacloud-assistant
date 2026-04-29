@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 /**
  * Route protection — checks for pawacloud_auth cookie set on successful
- * login/signup/guest-pass. Unauthenticated visitors land on /login.
+ * login/signup/OAuth. Unauthenticated visitors land on /login.
  * Chat, status, and other app routes are behind auth to prevent token abuse.
  */
 
@@ -28,7 +28,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // only authenticated users (login, signup, guest-pass, or OAuth) get through
+  // only authenticated users (login, signup, or OAuth) get through
   const authed = request.cookies.get("pawacloud_auth");
   if (authed) {
     return NextResponse.next();

@@ -129,7 +129,6 @@ cd rust-core && cargo test   # rust (runs inside Docker build)
 | `POST` | `/auth/login` | Email/password login |
 | `GET` | `/auth/me` | Current user |
 | `POST` | `/auth/logout` | Clear session |
-| `POST` | `/auth/guest-pass` | 60-min session for `@pawait.co.ke` |
 
 **Document pipeline** — upload PDF/DOCX/JPG/PNG, summarize or translate via SSE → see [docs/documents.md](docs/documents.md).
 
@@ -139,17 +138,14 @@ All endpoints return typed Pydantic v2 models. Input sanitized via Rust PyO3 (Py
 
 ## Auth
 
-Three methods, sessions via HMAC-signed tokens (Redis-independent):
+Two methods, sessions via HMAC-signed tokens (Redis-independent):
 
 | Method | TTL | Notes |
 |--------|-----|-------|
 | Google OAuth | 24h | OpenID Connect |
 | Email + password | 24h | bcrypt, PostgreSQL |
-| Guest Pass | 60min | `@pawait.co.ke` — no signup needed |
 
 History is keyed by email, not session ID — persists across sign-out/sign-in and survives Cloud Run cold starts. Chat conversations stored in PostgreSQL (Neon.tech, `aws-eu-west-2`) with in-memory cache for fast reads.
-
-**For Pawa IT reviewers**: click "Fast Pass" on login, enter any `@pawait.co.ke` email.
 
 ---
 
