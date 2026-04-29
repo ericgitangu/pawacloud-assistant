@@ -13,19 +13,19 @@ interface LanguagePickerProps {
   detectedSource?: string | null;
 }
 
-const CURATED: { tag: string; label: string }[] = [
-  { tag: "en", label: "English" },
-  { tag: "sw", label: "Swahili" },
-  { tag: "fr", label: "French" },
-  { tag: "pt", label: "Portuguese" },
-  { tag: "ar", label: "Arabic" },
-  { tag: "am", label: "Amharic" },
-  { tag: "yo", label: "Yoruba" },
-  { tag: "ha", label: "Hausa" },
-  { tag: "zu", label: "Zulu" },
-  { tag: "es", label: "Spanish" },
-  { tag: "de", label: "German" },
-  { tag: "zh", label: "Mandarin" },
+const CURATED: { tag: string; label: string; flag: string }[] = [
+  { tag: "en", label: "English", flag: "🇬🇧" },
+  { tag: "sw", label: "Swahili", flag: "🇰🇪" },
+  { tag: "fr", label: "French", flag: "🇫🇷" },
+  { tag: "pt", label: "Portuguese", flag: "🇵🇹" },
+  { tag: "ar", label: "Arabic", flag: "🇸🇦" },
+  { tag: "am", label: "Amharic", flag: "🇪🇹" },
+  { tag: "yo", label: "Yoruba", flag: "🇳🇬" },
+  { tag: "ha", label: "Hausa", flag: "🇳🇪" },
+  { tag: "zu", label: "Zulu", flag: "🇿🇦" },
+  { tag: "es", label: "Spanish", flag: "🇪🇸" },
+  { tag: "de", label: "German", flag: "🇩🇪" },
+  { tag: "zh", label: "Mandarin", flag: "🇨🇳" },
 ];
 
 export function LanguagePicker({
@@ -55,14 +55,19 @@ export function LanguagePicker({
               setShowOther(false);
               onChange(opt.tag);
             }}
+            aria-label={opt.label}
+            title={opt.label}
             className={cn(
-              "rounded-md border px-2.5 py-1 text-xs transition-colors",
+              "flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs transition-colors",
               value === opt.tag
                 ? "border-pawa-cyan/50 bg-pawa-cyan/15 text-pawa-cyan"
                 : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-pawa-cyan/30 hover:bg-pawa-cyan/5",
             )}
           >
-            {opt.label}
+            <span className="text-sm leading-none" aria-hidden="true">
+              {opt.flag}
+            </span>
+            <span>{opt.label}</span>
           </button>
         ))}
         <button
