@@ -13,7 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CameraCapture } from "@/components/CameraCapture";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import {
   uploadDocument,
@@ -99,49 +100,76 @@ export function DocumentUploadDialog({ open, onOpenChange, onReady }: Props) {
         </DialogHeader>
 
         {!artifact ? (
-          <div
-            onClick={() => inputRef.current?.click()}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const f = e.dataTransfer.files[0];
-              if (f) handleFile(f);
-            }}
-            className={cn(
-              "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)]/40 px-6 py-10 text-center transition-colors",
-              file
-                ? "border-pawa-cyan/40 bg-pawa-cyan/5"
-                : "hover:border-pawa-cyan/30",
-            )}
-          >
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".pdf,.docx"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleFile(f);
-              }}
-            />
-            {file ? (
-              <>
-                <FileText className="h-8 w-8 text-pawa-cyan" />
-                <p className="text-sm font-medium">{file.name}</p>
-                <p className="text-xs text-[var(--muted-foreground)]">
-                  {(file.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-              </>
-            ) : (
-              <>
-                <Upload className="h-8 w-8 text-[var(--muted-foreground)]" />
-                <p className="text-sm">Tap to choose or drop a file here</p>
-                <p className="text-xs text-[var(--muted-foreground)]">
-                  .pdf or .docx
-                </p>
-              </>
-            )}
-          </div>
+          <Tabs defaultValue="file">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="file">File</TabsTrigger>
+              <TabsTrigger value="camera">Camera</TabsTrigger>
+            </TabsList>
+            <TabsContent value="file" className="mt-3">
+              <div
+                onClick={() => inputRef.current?.click()}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const f = e.dataTransfer.files[0];
+                  if (f) handleFile(f);
+                }}
+                className={cn(
+                  "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)]/40 px-6 py-10 text-center transition-colors",
+                  file
+                    ? "border-pawa-cyan/40 bg-pawa-cyan/5"
+                    : "hover:border-pawa-cyan/30",
+                )}
+              >
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept=".pdf,.docx"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleFile(f);
+                  }}
+                />
+                {file ? (
+                  <>
+                    <FileText className="h-8 w-8 text-pawa-cyan" />
+                    <p className="text-sm font-medium">{file.name}</p>
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                      {(file.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-8 w-8 text-[var(--muted-foreground)]" />
+                    <p className="text-sm">Tap to choose or drop a file here</p>
+                    <p className="text-xs text-[var(--muted-foreground)]">
+                      .pdf or .docx
+                    </p>
+                  </>
+                )}
+              </div>
+            </TabsContent>
+            <TabsContent value="camera" className="mt-3">
+              <CameraCapture
+                uploading={uploading}
+                onPicked={async (f) => {
+                  setFile(f);
+                  setUploading(true);
+                  try {
+                    const summary = await uploadDocument(f);
+                    setArtifact(summary);
+                    toast.success("Document ready.");
+                    if (lang === "en" && summary.source_lang)
+                      setLang(summary.source_lang);
+                  } catch {
+                    toast.error("Couldn't upload. Check your connection.");
+                    setUploading(false);
+                  }
+                }}
+              />
+            </TabsContent>
+          </Tabs>
         ) : (
           <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--card)]/40 p-3 text-sm">
             <div className="flex items-center gap-2">
