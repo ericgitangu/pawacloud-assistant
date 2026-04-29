@@ -10,11 +10,10 @@ import {
   EyeOff,
   Loader2,
   CheckCircle2,
-  Zap,
-  Shield,
-  Globe,
-  Code2,
-  Database,
+  FileText,
+  Camera,
+  Languages,
+  Download,
 } from "lucide-react";
 import { loginWithEmail, getLoginUrl } from "@/lib/api";
 import { Footer } from "@/components/Footer";
@@ -25,33 +24,33 @@ import { cn } from "@/lib/utils";
 const features = [
   {
     icon: Cloud,
-    title: "Cloud Infrastructure",
-    desc: "GCP, AWS, Azure — architecture, deployment, and pricing",
+    title: "Ask Anything",
+    desc: "Streamed Gemini answers on cloud, code, news, travel docs",
   },
   {
-    icon: Zap,
-    title: "Real-time Streaming",
-    desc: "Watch answers arrive word-by-word as they're generated",
+    icon: FileText,
+    title: "Upload Documents",
+    desc: "Drop a PDF, DOCX, JPG, or PNG (≤10 MB) — summarize or translate",
   },
   {
-    icon: Shield,
-    title: "Best Practices",
-    desc: "Security, cost optimisation, and Africa-aware guidance",
+    icon: Camera,
+    title: "Camera OCR",
+    desc: "Snap a doc on mobile. Blur check, then Cloud Vision OCR",
   },
   {
-    icon: Globe,
-    title: "Multilingual",
-    desc: "Swahili, Amharic, French, Portuguese, and 100+ languages",
+    icon: Sparkles,
+    title: "Summarize",
+    desc: "One-click markdown overview of any uploaded document",
   },
   {
-    icon: Code2,
-    title: "Python + Rust (PyO3)",
-    desc: "Native text processing with Python fallback",
+    icon: Languages,
+    title: "Translate",
+    desc: "Render any document in 12 curated languages or free-text",
   },
   {
-    icon: Database,
-    title: "Session History",
-    desc: "Persistent conversation history per user",
+    icon: Download,
+    title: "Download",
+    desc: "Export results as md, txt, docx, or pdf — rendered client-side",
   },
 ];
 
