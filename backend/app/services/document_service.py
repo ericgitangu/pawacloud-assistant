@@ -177,6 +177,8 @@ def build_system_prompt(action: str, target_language: str) -> str:
         return SUMMARIZE_SYSTEM + (
             f"\n\nWrite the summary in: {target_language}." if target_language else ""
         )
+    if not target_language:
+        raise ValueError("target_language is required for translate")
     return TRANSLATE_SYSTEM.format(target_language=target_language)
 
 

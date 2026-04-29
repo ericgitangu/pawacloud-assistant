@@ -78,7 +78,9 @@ class LLMProvider(Protocol):
     """Structural type for LLM backends — swap Gemini for Claude/OpenAI."""
 
     async def generate(self, query: str) -> tuple[str, int | None]: ...
-    async def stream(self, query: str) -> AsyncGenerator[str, None]: ...
+    async def stream(
+        self, query: str, system_instruction: str | None = None
+    ) -> AsyncGenerator[str, None]: ...
 
 
 class GeminiClient:
@@ -119,8 +121,16 @@ class GeminiClient:
                 model_name=self._model_name,
                 system_instruction=system_instruction,
             )
+            # documents need much more output room than chat — translations
+            # of multi-page input easily exceed the chat default of 2048
+            doc_config = genai.types.GenerationConfig(
+                temperature=0.7,
+                top_p=0.9,
+                top_k=40,
+                max_output_tokens=8192,
+            )
             resp = ad_hoc_model.generate_content(
-                query, generation_config=self._gen_config, stream=True
+                query, generation_config=doc_config, stream=True
             )
         else:
             resp = self._model.generate_content(
