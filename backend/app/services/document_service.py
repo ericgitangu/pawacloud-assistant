@@ -69,6 +69,21 @@ def _parse_docx(raw: bytes) -> ParsedDocument:
     )
 
 
+def _vision_client():
+    """Build a Vision client. Uses GOOGLE_VISION_KEY_PATH when set (local dev);
+    falls through to Application Default Credentials on Cloud Run / GCE where
+    the runtime service account is the credential source."""
+    from app.core.config import get_settings
+    from google.cloud import vision
+
+    settings = get_settings()
+    if settings.GOOGLE_VISION_KEY_PATH:
+        return vision.ImageAnnotatorClient.from_service_account_json(
+            settings.GOOGLE_VISION_KEY_PATH
+        )
+    return vision.ImageAnnotatorClient()
+
+
 def _try_vision_ocr(raw_pdf: bytes) -> str | None:
     """Send the PDF to Google Cloud Vision for OCR.
 
@@ -77,18 +92,10 @@ def _try_vision_ocr(raw_pdf: bytes) -> str | None:
     are logged but never raised — caller falls back to detect-and-warn.
     """
     try:
-        from app.core.config import get_settings
-
-        settings = get_settings()
-        if not settings.GOOGLE_VISION_KEY_PATH:
-            return None
-
         # lazy import — only paid when we actually call this path
         from google.cloud import vision
 
-        client = vision.ImageAnnotatorClient.from_service_account_json(
-            settings.GOOGLE_VISION_KEY_PATH
-        )
+        client = _vision_client()
         request = vision.AnnotateFileRequest(
             input_config=vision.InputConfig(
                 content=raw_pdf,
@@ -180,17 +187,9 @@ def _parse_image(raw: bytes, mime: str) -> ParsedDocument:
 def _try_vision_ocr_image(raw: bytes, _mime: str) -> str | None:
     """Sync OCR for image bytes. Returns None on any failure (logged, not raised)."""
     try:
-        from app.core.config import get_settings
-
-        settings = get_settings()
-        if not settings.GOOGLE_VISION_KEY_PATH:
-            return None
-
         from google.cloud import vision
 
-        client = vision.ImageAnnotatorClient.from_service_account_json(
-            settings.GOOGLE_VISION_KEY_PATH
-        )
+        client = _vision_client()
         image = vision.Image(content=raw)
         resp = client.document_text_detection(image=image)
         if resp.error.message:
