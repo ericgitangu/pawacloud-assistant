@@ -3,6 +3,11 @@
 AI-powered chatbot with Gemini, Rust+PyO3 text processing, and GCP deployment.
 
 [![CI](https://github.com/ericgitangu/pawacloud-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/ericgitangu/pawacloud-assistant/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/ericgitangu/pawacloud-assistant/actions/workflows/codeql.yml/badge.svg)](https://github.com/ericgitangu/pawacloud-assistant/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/ericgitangu/pawacloud-assistant/badge)](https://api.securityscorecards.dev/projects/github.com/ericgitangu/pawacloud-assistant)
+![License](https://img.shields.io/github/license/ericgitangu/pawacloud-assistant)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/ericgitangu/pawacloud-assistant/pulls)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)
 ![Rust](https://img.shields.io/badge/Rust-PyO3-DEA584?logo=rust&logoColor=white)
