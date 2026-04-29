@@ -2,15 +2,21 @@
 
 echo "==> pre-push validation"
 
-cd backend
-python -m pytest tests/ -v || exit 1
-cd ..
+# backend tests run in the project venv to avoid relying on a globally
+# installed pytest
+if [ -x backend/venv/bin/python ]; then
+  cd backend
+  ./venv/bin/python -m pytest tests/ -v || exit 1
+  cd ..
+else
+  echo "skipping backend tests — backend/venv not present"
+fi
 
 cd frontend
 pnpm run build || exit 1
 cd ..
 
-if [ -d "rust-core" ] && command -v cargo &>/dev/null; then
+if [ -d "rust-core" ] && command -v cargo >/dev/null 2>&1; then
   cd rust-core
   cargo test || exit 1
   cd ..
