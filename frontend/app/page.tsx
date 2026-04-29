@@ -8,7 +8,7 @@ import { Header } from "@/components/Header";
 import { HistoryPanel } from "@/components/HistoryPanel";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { Footer } from "@/components/Footer";
-import { Snackbar } from "@/components/Snackbar";
+import { toast } from "@/lib/toast";
 import {
   streamQuery,
   getHistory,
@@ -43,10 +43,6 @@ function HomeContent() {
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [snackbar, setSnackbar] = useState<{
-    message: string;
-    variant: "success" | "error" | "info";
-  } | null>(null);
   const [lastQuery, setLastQuery] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -125,9 +121,9 @@ function HomeContent() {
     try {
       await deleteHistoryItem(itemId);
       setHistory((prev) => prev.filter((h) => h.id !== itemId));
-      setSnackbar({ message: "Conversation deleted", variant: "success" });
+      toast.success("Conversation deleted");
     } catch {
-      setSnackbar({ message: "Failed to delete item", variant: "error" });
+      toast.error("Failed to delete item");
     }
   }, []);
 
@@ -135,9 +131,9 @@ function HomeContent() {
     try {
       await clearHistory();
       setHistory([]);
-      setSnackbar({ message: "History cleared", variant: "success" });
+      toast.success("History cleared");
     } catch {
-      setSnackbar({ message: "Failed to clear history", variant: "error" });
+      toast.error("Failed to clear history");
     }
   }, []);
 
@@ -327,13 +323,6 @@ function HomeContent() {
         </main>
       </div>
 
-      {snackbar && (
-        <Snackbar
-          message={snackbar.message}
-          variant={snackbar.variant}
-          onDismiss={() => setSnackbar(null)}
-        />
-      )}
     </div>
   );
 }
