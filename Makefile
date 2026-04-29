@@ -13,7 +13,7 @@ rust-build:
 	cd backend && . venv/bin/activate && cd ../rust-core && pip install maturin && maturin develop --release
 
 test:
-	cd backend && . venv/bin/activate && python3 -m pytest tests/ -v --doctest-modules app/services/text_processing.py app/services/response_processing.py
+	cd backend && . venv/bin/activate && python3 -m pytest tests/ -v --doctest-modules app/services/text_processing.py app/services/response_processing.py app/services/document_processing.py
 
 deploy-backend:
 	bash scripts/deploy-backend.sh
