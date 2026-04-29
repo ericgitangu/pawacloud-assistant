@@ -46,4 +46,13 @@ if __name__ == "__main__":
     fixtures.mkdir(parents=True, exist_ok=True)
     make_docx(fixtures / "sample.docx")
     make_pdf(fixtures / "sample.pdf")
-    print(f"wrote {fixtures}/sample.docx + sample.pdf")
+
+    # post-generation parse check — fixtures are no use if they don't load
+    Document(fixtures / "sample.docx")
+    from pypdf import PdfReader
+
+    reader = PdfReader(str(fixtures / "sample.pdf"))
+    extracted = reader.pages[0].extract_text()
+    assert "Sample PDF for upload tests" in extracted, "PDF fixture failed parse check"
+
+    print(f"wrote {fixtures}/sample.docx + sample.pdf (verified)")
