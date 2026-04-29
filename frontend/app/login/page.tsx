@@ -428,7 +428,7 @@ function LoginContent() {
             {/* required */}
             <FadeIn>
               <p className="eyebrow mb-3 text-center text-[var(--muted-foreground)]/60">
-                Assessment Checklist
+                Tech Stack
               </p>
             </FadeIn>
             <Stagger className="mb-8 grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
