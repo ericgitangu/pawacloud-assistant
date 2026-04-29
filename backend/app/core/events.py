@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
-"""Event registry + emit_event for the document pipeline."""
+"""Centralised SSE event codes so the /health/events probe and the
+document router emit in lockstep without a shared import cycle."""
 
 import logging
 from collections import Counter
@@ -32,7 +33,7 @@ EVENT_REGISTRY: dict[EventCode, str] = {
 _counter: Counter[str] = Counter()
 
 
-def emit_event(request: Request | None, code: EventCode, **fields) -> dict:
+def emit_event(request: Request | None, code: EventCode | str, **fields) -> dict:
     """Record event for telemetry and return its JSON wire shape."""
     if code not in EVENT_REGISTRY:
         raise ValueError(f"unregistered event code: {code}")
@@ -56,4 +57,4 @@ def emit_event(request: Request | None, code: EventCode, **fields) -> dict:
 
 def event_counts() -> dict[str, int]:
     """Snapshot of cumulative counts since process start."""
-    return {code: _counter.get(code, 0) for code in EVENT_REGISTRY}
+    return {str(code): _counter.get(code, 0) for code in EVENT_REGISTRY}
