@@ -110,13 +110,22 @@ class GeminiClient:
             token_count = getattr(resp.usage_metadata, "total_token_count", None)
         return text, self._model_name, token_count
 
-    async def stream(self, query: str) -> AsyncGenerator[str, None]:
+    async def stream(
+        self, query: str, system_instruction: str | None = None
+    ) -> AsyncGenerator[str, None]:
         """Yield chunks as Gemini generates them."""
-        resp = self._model.generate_content(
-            query,
-            generation_config=self._gen_config,
-            stream=True,
-        )
+        if system_instruction:
+            ad_hoc_model = genai.GenerativeModel(
+                model_name=self._model_name,
+                system_instruction=system_instruction,
+            )
+            resp = ad_hoc_model.generate_content(
+                query, generation_config=self._gen_config, stream=True
+            )
+        else:
+            resp = self._model.generate_content(
+                query, generation_config=self._gen_config, stream=True
+            )
         for chunk in resp:
             if chunk.text:
                 yield chunk.text

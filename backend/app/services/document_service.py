@@ -2,17 +2,22 @@
 """Document parsing pipeline — docx + pdf text extraction with normalization."""
 
 import io
+import json
 import logging
 from dataclasses import dataclass
+from typing import AsyncGenerator
+from uuid import UUID
 
 from docx import Document
 from pypdf import PdfReader
 
+from app.core.events import EventCode, emit_event
 from app.services.document_processing import (
+    chunk_markdown,
     detect_script,
     normalize_document_text,
 )
-from app.services.text_processing import sanitize_input
+from app.services.text_processing import estimate_tokens, sanitize_input
 
 logger = logging.getLogger(__name__)
 
@@ -145,3 +150,125 @@ def _parse_pdf(raw: bytes) -> ParsedDocument:
 def _approx_page_count(text: str) -> int:
     """DOCX has no native page count; ~3000 chars per page is a reasonable rough hint."""
     return max(1, len(text) // 3000)
+
+
+SUMMARIZE_SYSTEM = """You are a precise document summarizer. Output is markdown only.
+Structure: ## Overview, ## Key Points (bullets), ## Action Items (numbered, if any).
+Preserve named entities, dates, monetary figures verbatim. Do not invent content.
+If the document is short, the Overview alone may suffice — omit empty sections."""
+
+TRANSLATE_SYSTEM = """You are a professional translator. Translate the document below
+into {target_language}. Preserve all markdown structure, headings, lists, tables,
+inline emphasis, and code blocks. Keep proper nouns, brand names, file paths, and
+URLs unchanged. Do not summarize, paraphrase, or omit content."""
+
+
+def build_user_prompt(action: str, source_lang: str | None, parsed_text: str) -> str:
+    hint = (
+        f"Source language hint: {source_lang or 'unknown'}\n\n" if source_lang else ""
+    )
+    if action == "summarize":
+        return f"{hint}Summarize the following document:\n\n---\n\n{parsed_text}"
+    return f"{hint}Document to translate:\n\n---\n\n{parsed_text}"
+
+
+def build_system_prompt(action: str, target_language: str) -> str:
+    if action == "summarize":
+        return SUMMARIZE_SYSTEM + (
+            f"\n\nWrite the summary in: {target_language}." if target_language else ""
+        )
+    return TRANSLATE_SYSTEM.format(target_language=target_language)
+
+
+async def stream_with_cache(
+    *,
+    request,
+    artifact_id: UUID,
+    parsed_text: str,
+    source_lang: str | None,
+    action: str,
+    target_lang: str,
+    output_cache_get,
+    output_cache_set,
+    history_persist,
+) -> AsyncGenerator[str, None]:
+    """Yields SSE-encoded JSON event lines. Caller wraps in StreamingResponse."""
+
+    cached = await output_cache_get(artifact_id, action, target_lang)
+    if cached is not None:
+        yield _sse(emit_event(request, EventCode.CACHE_HIT, content=cached))
+        yield _sse(emit_event(request, EventCode.DONE, tokens_used=None, model="cache"))
+        return
+
+    tokens = estimate_tokens(parsed_text)
+    chunks = chunk_markdown(parsed_text, 80_000)
+    yield _sse(emit_event(request, EventCode.PARSED, tokens=tokens, chunks=len(chunks)))
+
+    from app.services.llm_service import get_llm_client
+
+    try:
+        client = get_llm_client()
+    except RuntimeError as exc:
+        yield _sse(
+            emit_event(
+                request,
+                EventCode.ERROR,
+                code="llm_unavailable",
+                message="The assistant is unavailable right now. Try again shortly.",
+            )
+        )
+        logger.error("llm client init failed: %s", exc)
+        return
+
+    full_prompt = build_user_prompt(action, source_lang, parsed_text)
+    system = build_system_prompt(action, target_lang)
+
+    accumulated: list[str] = []
+    try:
+        async for chunk in client.stream(full_prompt, system_instruction=system):
+            accumulated.append(chunk)
+            yield _sse(emit_event(request, EventCode.CHUNK, text=chunk))
+    except Exception as exc:
+        yield _sse(
+            emit_event(
+                request,
+                EventCode.ERROR,
+                code="llm_failure",
+                message="Something went wrong while generating. Try again.",
+            )
+        )
+        logger.error("llm stream failed: %s", exc)
+        return
+
+    output = "".join(accumulated)
+    if not output:
+        yield _sse(
+            emit_event(
+                request,
+                EventCode.ERROR,
+                code="empty_output",
+                message="The assistant returned no content. Try again.",
+            )
+        )
+        return
+
+    await output_cache_set(
+        artifact_id, action, target_lang, output, client._model_name, None
+    )
+    label = _history_label(action, target_lang)
+    await history_persist(
+        artifact_id, action, target_lang, label, output, client._model_name, None
+    )
+
+    yield _sse(
+        emit_event(request, EventCode.DONE, tokens_used=None, model=client._model_name)
+    )
+
+
+def _sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
+
+
+def _history_label(action: str, target_lang: str) -> str:
+    verb = "Summarize" if action == "summarize" else "Translate"
+    return f"{verb} → {target_lang}"
