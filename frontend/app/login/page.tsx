@@ -129,7 +129,7 @@ function LoginContent() {
     authError === "oauth_failed" ? "Google sign-in failed — try again" : "",
   );
   const [loading, setLoading] = useState(false);
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
