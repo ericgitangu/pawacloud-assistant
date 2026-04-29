@@ -4198,24 +4198,519 @@ EOF
 
 ---
 
+## Addendum — Image upload + camera capture + blur gate
+
+Added after spec §1 / §4 amendments to support `image/jpeg` + `image/png`
+uploads (camera-friendly), with a client-side blur gate. These tasks slot
+in alongside the existing phases.
+
+### Task A.1: Backend — accept images via Vision OCR
+
+**Files:**
+- Modify: `backend/app/services/document_service.py`
+- Modify: `backend/app/routers/documents.py`
+- Modify: `backend/tests/test_document_processing.py`
+- Modify: `backend/tests/test_documents_api.py`
+
+**Slots in:** after Task 3.3 (Vision fallback) and before Task 3.5 (upload
+endpoint), so the parse path is image-aware before the router accepts the
+new MIMEs. If Task 3.5 is already done when this lands, the router edit
+applies on top.
+
+- [ ] **Step 1: Extend MIME constants and dispatch in document_service**
+
+In `backend/app/services/document_service.py`, near `DOCX_MIME` and `PDF_MIME`, add:
+
+```python
+JPEG_MIME = "image/jpeg"
+PNG_MIME  = "image/png"
+IMAGE_MIMES = {JPEG_MIME, PNG_MIME}
+```
+
+Extend `parse_document` to dispatch on image MIMEs:
+
+```python
+def parse_document(raw: bytes, filename: str, mime: str) -> ParsedDocument:
+    if mime == DOCX_MIME or filename.lower().endswith(".docx"):
+        return _parse_docx(raw)
+    if mime == PDF_MIME or filename.lower().endswith(".pdf"):
+        return _parse_pdf(raw)
+    if mime in IMAGE_MIMES or filename.lower().endswith((".jpg", ".jpeg", ".png")):
+        return _parse_image(raw, mime)
+    raise ValueError(f"unsupported mime: {mime}")
+```
+
+Add the image parser:
+
+```python
+def _parse_image(raw: bytes, mime: str) -> ParsedDocument:
+    """OCR a single still image via Cloud Vision DOCUMENT_TEXT_DETECTION."""
+    text = _try_vision_ocr_image(raw, mime) or ""
+    text = normalize_document_text(sanitize_input(text))
+
+    parse_method = "image-ocr" if text.strip() else "image-empty"
+    warnings: list[dict] = []
+    if parse_method == "image-empty":
+        warnings.append({
+            "code": "scanned_no_ocr",
+            "message": "Couldn't read text from the image. Try a clearer photo.",
+        })
+
+    return ParsedDocument(
+        text=text,
+        page_count=1,
+        char_count=len(text),
+        source_lang=detect_script(text, 4096) if text else None,
+        parse_method=parse_method,
+        warnings=warnings,
+    )
+
+
+def _try_vision_ocr_image(raw: bytes, mime: str) -> str | None:
+    """Sync OCR for image bytes. Returns None on any failure (logged, not raised)."""
+    try:
+        from app.core.config import get_settings
+
+        settings = get_settings()
+        if not settings.GOOGLE_VISION_KEY_PATH:
+            return None
+
+        from google.cloud import vision
+
+        client = vision.ImageAnnotatorClient.from_service_account_json(
+            settings.GOOGLE_VISION_KEY_PATH
+        )
+        image = vision.Image(content=raw)
+        resp = client.document_text_detection(image=image)
+        if resp.error.message:
+            logger.warning("vision image ocr error: %s", resp.error.message)
+            return None
+        return resp.full_text_annotation.text or None
+    except Exception as exc:
+        logger.warning("vision image ocr failed: %s", exc)
+        return None
+```
+
+- [ ] **Step 2: Extend the router's allowed MIMEs and size cap**
+
+In `backend/app/routers/documents.py`, replace the `ALLOWED_MIMES` line with:
+
+```python
+from app.services.document_service import (
+    DOCX_MIME, PDF_MIME, JPEG_MIME, PNG_MIME,
+    parse_document,
+)
+
+DOCUMENT_MIMES = {DOCX_MIME, PDF_MIME}
+IMAGE_MIMES    = {JPEG_MIME, PNG_MIME}
+ALLOWED_MIMES  = DOCUMENT_MIMES | IMAGE_MIMES
+IMAGE_MAX_BYTES = 8 * 1024 * 1024  # 8 MB cap for camera images
+```
+
+Update the size check:
+
+```python
+    raw = await file.read()
+    is_image = file.content_type in IMAGE_MIMES
+    cap = IMAGE_MAX_BYTES if is_image else settings.DOCUMENT_MAX_BYTES
+    if len(raw) > cap:
+        raise HTTPException(status_code=413, detail=f"File over the {cap // (1024*1024)} MB limit")
+```
+
+Update the unsupported-mime error to reference the wider set:
+
+```python
+    if file.content_type not in ALLOWED_MIMES:
+        raise HTTPException(status_code=415, detail="Only PDF, DOCX, JPG, or PNG are supported")
+```
+
+- [ ] **Step 3: Add tests**
+
+Append to `backend/tests/test_document_processing.py`:
+
+```python
+def test_parse_image_calls_vision_when_configured(monkeypatch):
+    fake_text = "Hello from a photo."
+    monkeypatch.setattr(
+        "app.services.document_service._try_vision_ocr_image",
+        lambda raw, mime: fake_text,
+    )
+    parsed = parse_document(b"\xff\xd8\xff binary", "snap.jpg", "image/jpeg")
+    assert parsed.parse_method == "image-ocr"
+    assert "Hello from a photo" in parsed.text
+
+
+def test_parse_image_warns_when_vision_returns_nothing(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.document_service._try_vision_ocr_image",
+        lambda raw, mime: None,
+    )
+    parsed = parse_document(b"\xff\xd8\xff", "blurry.jpg", "image/jpeg")
+    assert parsed.parse_method == "image-empty"
+    assert any(w["code"] == "scanned_no_ocr" for w in parsed.warnings)
+```
+
+Append to `backend/tests/test_documents_api.py` inside `class TestDocumentUpload`:
+
+```python
+    def test_image_jpeg_accepted(self, authed_client, monkeypatch):
+        from app.services import document_service as ds
+        monkeypatch.setattr(ds, "_try_vision_ocr_image", lambda raw, mime: "ocr text")
+        resp = authed_client.post(
+            "/api/v1/documents/upload",
+            files={"file": ("snap.jpg", b"\xff\xd8\xff binary", "image/jpeg")},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["parse_method"] == "image-ocr"
+
+    def test_image_oversize_rejected(self, authed_client):
+        big_image = b"\xff\xd8\xff" + b"x" * (8 * 1024 * 1024 + 1)
+        resp = authed_client.post(
+            "/api/v1/documents/upload",
+            files={"file": ("huge.jpg", big_image, "image/jpeg")},
+        )
+        assert resp.status_code == 413
+```
+
+- [ ] **Step 4: Run tests + lint**
+
+```bash
+cd backend && . venv/bin/activate && python -m pytest tests/ -v && ruff check app/ tests/ && ruff format app/ tests/ --check
+```
+
+Expected: all PASS, lint clean.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add backend/app/services/document_service.py backend/app/routers/documents.py backend/tests/test_document_processing.py backend/tests/test_documents_api.py
+git commit -m "feat: image ocr via vision for camera uploads"
+```
+
+---
+
+### Task A.2: Frontend — blur detection + CameraCapture + dialog tab
+
+**Files:**
+- Create: `frontend/lib/blurDetect.ts`
+- Create: `frontend/components/CameraCapture.tsx`
+- Modify: `frontend/components/DocumentUploadDialog.tsx`
+
+**Slots in:** after Task 4.6 (DocumentUploadDialog). The dialog gains a
+File / Camera tab pair; the Camera tab renders `<CameraCapture>`.
+
+- [ ] **Step 1: Create blur detector**
+
+Create `frontend/lib/blurDetect.ts`:
+
+```typescript
+// SPDX-License-Identifier: MIT
+// Laplacian-variance blur estimator.
+// Lower variance = blurrier. Threshold tuned for typical phone photos.
+
+export const BLUR_OK = 100;     // ≥ this = sharp enough
+export const BLUR_SOFT = 60;    // between SOFT and OK = warning, still allowed
+
+export type BlurVerdict = "clear" | "soft" | "blurry";
+
+/** Run the file through a downscaled grayscale Laplacian. Returns verdict + variance. */
+export async function estimateBlur(file: File): Promise<{ verdict: BlurVerdict; variance: number }> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImage(url);
+    const { canvas, ctx } = downscaledCanvas(img, 640);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const variance = laplacianVariance(data);
+    const verdict: BlurVerdict =
+      variance >= BLUR_OK ? "clear" : variance >= BLUR_SOFT ? "soft" : "blurry";
+    return { verdict, variance };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function downscaledCanvas(img: HTMLImageElement, maxWidth: number) {
+  const scale = Math.min(1, maxWidth / img.naturalWidth);
+  const w = Math.max(1, Math.round(img.naturalWidth * scale));
+  const h = Math.max(1, Math.round(img.naturalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) throw new Error("canvas 2d unavailable");
+  return { canvas, ctx };
+}
+
+function laplacianVariance(data: ImageData): number {
+  const { width, height, data: px } = data;
+  const gray = new Float32Array(width * height);
+  for (let i = 0, j = 0; i < px.length; i += 4, j++) {
+    gray[j] = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+  }
+
+  let sum = 0;
+  let sumSq = 0;
+  let count = 0;
+  for (let y = 1; y < height - 1; y++) {
+    for (let x = 1; x < width - 1; x++) {
+      const i = y * width + x;
+      const lap =
+        -4 * gray[i] +
+        gray[i - 1] +
+        gray[i + 1] +
+        gray[i - width] +
+        gray[i + width];
+      sum += lap;
+      sumSq += lap * lap;
+      count++;
+    }
+  }
+  if (count === 0) return 0;
+  const mean = sum / count;
+  return sumSq / count - mean * mean;
+}
+```
+
+- [ ] **Step 2: Create CameraCapture component**
+
+Create `frontend/components/CameraCapture.tsx`:
+
+```tsx
+// SPDX-License-Identifier: MIT
+"use client";
+
+import { Camera, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
+
+import { Button } from "@/components/ui/button";
+import { estimateBlur, type BlurVerdict } from "@/lib/blurDetect";
+import { haptics } from "@/lib/haptics";
+import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
+
+interface Props {
+  onPicked: (file: File) => void;
+  uploading?: boolean;
+}
+
+const VERDICT_COPY: Record<BlurVerdict, { label: string; tone: string }> = {
+  clear:  { label: "Looks clear ✓",          tone: "border-pawa-accent/40 bg-pawa-accent/10 text-pawa-accent" },
+  soft:   { label: "A little soft — try again?", tone: "border-yellow-500/40 bg-yellow-500/10 text-yellow-500" },
+  blurry: { label: "Try a steadier shot",     tone: "border-pawa-error/40 bg-pawa-error/10 text-pawa-error" },
+};
+
+export function CameraCapture({ onPicked, uploading }: Props) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [verdict, setVerdict] = useState<BlurVerdict | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [picked, setPicked] = useState<File | null>(null);
+
+  const handle = useCallback(async (file: File) => {
+    haptics.tap();
+    if (!/^image\/(jpeg|png)$/.test(file.type)) {
+      toast.warn("Only JPG or PNG photos.");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.warn("That photo is over the 8 MB limit.");
+      return;
+    }
+    setPicked(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    setAnalyzing(true);
+    try {
+      const { verdict: v } = await estimateBlur(file);
+      setVerdict(v);
+      if (v === "blurry") haptics.warn();
+      else haptics.success();
+    } catch {
+      // if detection fails, allow submit anyway
+      setVerdict("soft");
+    } finally {
+      setAnalyzing(false);
+    }
+  }, []);
+
+  const handleSubmit = useCallback(() => {
+    if (!picked || verdict === "blurry") return;
+    onPicked(picked);
+  }, [picked, verdict, onPicked]);
+
+  return (
+    <div className="space-y-3">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void handle(f);
+        }}
+      />
+
+      {!previewUrl ? (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--border)] bg-[var(--card)]/40 px-6 py-10 text-center transition-colors hover:border-pawa-cyan/30"
+        >
+          <Camera className="h-8 w-8 text-[var(--muted-foreground)]" />
+          <p className="text-sm">Tap to open camera</p>
+          <p className="text-xs text-[var(--muted-foreground)]">JPG or PNG, up to 8 MB</p>
+        </button>
+      ) : (
+        <div className="space-y-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={previewUrl}
+            alt="captured preview"
+            className="max-h-64 w-full rounded-xl object-contain"
+          />
+          <div
+            className={cn(
+              "flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs",
+              verdict ? VERDICT_COPY[verdict].tone : "border-[var(--border)] text-[var(--muted-foreground)]",
+            )}
+          >
+            {analyzing ? (
+              <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Checking sharpness…</>
+            ) : verdict === "blurry" ? (
+              <><AlertTriangle className="h-3.5 w-3.5" /> {VERDICT_COPY.blurry.label}</>
+            ) : verdict ? (
+              <><CheckCircle2 className="h-3.5 w-3.5" /> {VERDICT_COPY[verdict].label}</>
+            ) : null}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setPicked(null);
+                setPreviewUrl(null);
+                setVerdict(null);
+                inputRef.current?.click();
+              }}
+              disabled={uploading}
+            >
+              Retake
+            </Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={!verdict || verdict === "blurry" || uploading || analyzing}
+            >
+              {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Use this photo
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: Add a File / Camera tab pair to DocumentUploadDialog**
+
+Modify `frontend/components/DocumentUploadDialog.tsx`. Add imports:
+
+```tsx
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CameraCapture } from "@/components/CameraCapture";
+```
+
+Wrap the existing drop-zone JSX (the block before `artifact ? ... :`) inside a Tabs:
+
+```tsx
+{!artifact ? (
+  <Tabs defaultValue="file">
+    <TabsList className="grid w-full grid-cols-2">
+      <TabsTrigger value="file">File</TabsTrigger>
+      <TabsTrigger value="camera">Camera</TabsTrigger>
+    </TabsList>
+    <TabsContent value="file" className="mt-3">
+      {/* existing drop-zone block stays here unchanged */}
+    </TabsContent>
+    <TabsContent value="camera" className="mt-3">
+      <CameraCapture
+        uploading={uploading}
+        onPicked={async (f) => {
+          setFile(f);
+          // immediately upload the picked image
+          setUploading(true);
+          try {
+            const summary = await uploadDocument(f);
+            setArtifact(summary);
+            toast.success("Document ready.");
+            if (lang === "en" && summary.source_lang) setLang(summary.source_lang);
+          } catch {
+            toast.error("Couldn't upload. Check your connection.");
+            setUploading(false);
+          }
+        }}
+      />
+    </TabsContent>
+  </Tabs>
+) : (
+  /* existing artifact-confirmation block stays here unchanged */
+)}
+```
+
+- [ ] **Step 4: Type-check + lint**
+
+```bash
+cd frontend && pnpm tsc --noEmit && pnpm eslint .
+```
+
+- [ ] **Step 5: Manual smoke test**
+
+```bash
+cd frontend && pnpm run dev
+```
+
+On a mobile device (or device-mode in dev tools): open the dialog, switch
+to Camera tab, snap a photo, observe the sharpness pill, confirm submit
+is gated when blurry, retake works.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add frontend/lib/blurDetect.ts frontend/components/CameraCapture.tsx frontend/components/DocumentUploadDialog.tsx
+git commit -m "feat: camera capture with blur gate"
+```
+
+---
+
 ## Self-review
 
 This plan was reviewed against the spec section by section:
 
-- §1 Goals + non-goals → Tasks 3.5, 3.6, 4.6, 4.7, 4.8 (upload, process, dialog, output, wiring)
+- §1 Goals + non-goals → Tasks 3.5, 3.6, 4.6, 4.7, 4.8 + Addendum A.1, A.2
 - §2 Architecture → covered across Phase 1 (foundations) and Phase 3 (router)
 - §3 Data model → Tasks 1.3, 1.4
-- §4 Parsing pipeline → Tasks 3.1, 3.2, 3.3
+- §4 Parsing pipeline → Tasks 3.1, 3.2, 3.3, plus Addendum A.1 for image route
 - §5 Rust + PyO3 → Tasks 2.1, 2.2, 2.3
 - §6 LLM orchestration → Task 3.4
 - §7 Event registry → Tasks 1.5, 4.4 (frontend mirror)
-- §8 UI surface → Tasks 4.1–4.9
-- §9 Testing → Tasks 1.5, 3.1, 3.5, 3.6, 3.7, plus Task 6.1
+- §8 UI surface → Tasks 4.1–4.9 + Addendum A.2 (camera + blur)
+- §9 Testing → Tasks 1.5, 3.1, 3.5, 3.6, 3.7, plus Task 6.1, plus A.1 image tests
 - §10 Commit cadence → enforced inline at each task's commit step
 - §11 Documentation → Tasks 5.2, 5.3, 5.4
 - §12 License + IP → Task 0.1 + SPDX headers on every new source file
 
-No placeholders, no "TBD", no "similar to Task N" without code. Function names verified consistent across tasks (`uploadDocument`, `streamDocumentProcess`, `parse_document`, `stream_with_cache`, `EventCode`, `emit_event`).
+No placeholders, no "TBD", no "similar to Task N" without code. Function names verified consistent across tasks (`uploadDocument`, `streamDocumentProcess`, `parse_document`, `stream_with_cache`, `EventCode`, `emit_event`, `estimateBlur`, `_parse_image`, `_try_vision_ocr_image`).
 
 ---
 
