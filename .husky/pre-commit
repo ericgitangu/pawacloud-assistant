@@ -3,18 +3,22 @@
 echo "==> pre-commit checks"
 
 # secret scanning
-if command -v gitleaks &>/dev/null; then
+if command -v gitleaks >/dev/null 2>&1; then
   gitleaks protect --staged --no-banner || exit 1
 fi
 
-# backend: python
+# backend: python — use the project venv so ruff resolves locally
 BACKEND_CHANGED=$(git diff --cached --name-only -- 'backend/')
 if [ -n "$BACKEND_CHANGED" ]; then
   echo "  -> python lint"
-  cd backend
-  python -m ruff check app/ tests/ --fix || exit 1
-  python -m ruff format app/ tests/ --check || exit 1
-  cd ..
+  if [ -x backend/venv/bin/python ]; then
+    cd backend
+    ./venv/bin/python -m ruff check app/ tests/ --fix || exit 1
+    ./venv/bin/python -m ruff format app/ tests/ --check || exit 1
+    cd ..
+  else
+    echo "     skipping — backend/venv not present"
+  fi
 fi
 
 # frontend: typescript

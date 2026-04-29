@@ -143,8 +143,7 @@ def _run_pyo3_benchmarks() -> list[dict]:
             _py_estimate_tokens,
         ),
         "validate_markdown": (
-            "# Heading\n\n- item 1\n- item 2\n\n```python\nprint('hello')\n```\n"
-            * 10,
+            "# Heading\n\n- item 1\n- item 2\n\n```python\nprint('hello')\n```\n" * 10,
             _py_validate_markdown,
         ),
         "extract_code_blocks": (
