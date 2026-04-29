@@ -43,3 +43,36 @@ Frontend sends `Authorization: Bearer <token>` on every API call — no cross-or
 PyO3 bridge for text ops on every request/response.
 7 functions: sanitize, tokenize, validate markdown, extract code blocks, format sources, truncate, similarity.
 Live benchmarks at `/health/metrics`. Optional — Python fallback works identically.
+
+## Document pipeline
+
+Two-step BFF: upload returns parsed metadata; process opens an SSE stream
+keyed by artifact id + action + target language. Cache-first — Postgres
+holds parsed text and per-action outputs; identical re-requests bypass the
+LLM.
+
+```mermaid
+sequenceDiagram
+  participant Browser
+  participant Documents API
+  participant Postgres
+  participant Gemini
+
+  Browser->>Documents API: POST /documents/upload (multipart)
+  Documents API->>Documents API: parse (docx/pdf/image)
+  Documents API->>Postgres: artifact row (sha256-deduped)
+  Documents API-->>Browser: ArtifactSummary
+
+  Browser->>Documents API: GET /documents/{id}/process?action&lang (SSE)
+  Documents API->>Postgres: cache check
+  alt cache hit
+    Documents API-->>Browser: cache_hit + done
+  else cache miss
+    Documents API->>Gemini: stream(prompt, system)
+    Gemini-->>Documents API: chunk*
+    Documents API-->>Browser: parsed, chunk*, done
+    Documents API->>Postgres: artifact_outputs + conversations(kind=document)
+  end
+```
+
+See [docs/documents.md](documents.md) for the full walkthrough.
