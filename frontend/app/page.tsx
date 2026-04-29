@@ -241,6 +241,8 @@ function HomeContent() {
     "Mafuriko ya Nairobi yalisababishwa na nini na watu wangapi waliathirika?",
     "How do the new NTSA smart cameras work for traffic fines?",
     "Hizi camera za NTSA zinawork aje na fine zinakam through simu?",
+    "What kinds of documents can I upload, and what can I do with them?",
+    "Show me an example of summarizing and translating a contract.",
   ];
 
   return (
