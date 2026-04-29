@@ -14,6 +14,11 @@ import {
   Camera,
   Languages,
   Download,
+  Zap,
+  Shield,
+  Globe,
+  Code2,
+  Database,
 } from "lucide-react";
 import { loginWithEmail, getLoginUrl } from "@/lib/api";
 import { Footer } from "@/components/Footer";
@@ -21,7 +26,8 @@ import { FadeIn, Stagger, StaggerItem } from "@/components/FadeIn";
 import { useAuth } from "@/providers/AuthProvider";
 import { cn } from "@/lib/utils";
 
-const features = [
+// what users do — the visible features
+const capabilities = [
   {
     icon: Cloud,
     title: "Ask Anything",
@@ -51,6 +57,55 @@ const features = [
     icon: Download,
     title: "Download",
     desc: "Export results as md, txt, docx, or pdf — rendered client-side",
+  },
+  {
+    icon: Sparkles,
+    title: "Cache-First",
+    desc: "Repeat asks for the same artifact + language pair load instantly",
+  },
+  {
+    icon: Globe,
+    title: "Auto-Detect Source",
+    desc: "Source script detection nudges Gemini for cleaner translations",
+  },
+  {
+    icon: Zap,
+    title: "Offline-Ready (PWA)",
+    desc: "Installable on mobile + desktop — past artifacts viewable offline",
+  },
+];
+
+// how it's built — the architecture quirks
+const architecture = [
+  {
+    icon: Cloud,
+    title: "Cloud Infrastructure",
+    desc: "GCP-first — Cloud Run + Vision OCR + Gemini, Africa-south1 region",
+  },
+  {
+    icon: Zap,
+    title: "Real-time Streaming",
+    desc: "Server-sent events — answers and OCR results flow as they arrive",
+  },
+  {
+    icon: Shield,
+    title: "Best Practices",
+    desc: "Security, cost-aware autoscaling, and Africa-aware guidance",
+  },
+  {
+    icon: Globe,
+    title: "Multilingual",
+    desc: "12 curated languages — Swahili, French, Portuguese, Arabic, Amharic — plus free-text for anything else",
+  },
+  {
+    icon: Code2,
+    title: "Python + Rust (PyO3)",
+    desc: "Hot-path text normalization in Rust, with a Python fallback",
+  },
+  {
+    icon: Database,
+    title: "Session History",
+    desc: "PostgreSQL-backed conversation + artifact history per user",
   },
 ];
 
@@ -184,12 +239,35 @@ function LoginContent() {
               </p>
             </FadeIn>
 
-            {/* feature cards */}
-            <Stagger className="grid gap-2 sm:grid-cols-2 sm:gap-2.5">
-              {features.map((feat) => (
+            {/* capability cards — what users do */}
+            <p className="eyebrow mb-2 text-[var(--muted-foreground)]/60">
+              Capabilities
+            </p>
+            <Stagger className="mb-5 grid gap-2 sm:grid-cols-2 sm:gap-2.5">
+              {capabilities.map((feat) => (
                 <StaggerItem key={feat.title}>
                   <div className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)]/30 p-2.5 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-pawa-cyan/20 hover:shadow-lg hover:shadow-pawa-cyan/5 sm:p-3">
                     <feat.icon className="mt-0.5 h-4 w-4 shrink-0 text-pawa-cyan" />
+                    <div>
+                      <p className="text-xs font-medium">{feat.title}</p>
+                      <p className="text-[10px] leading-snug text-[var(--muted-foreground)]">
+                        {feat.desc}
+                      </p>
+                    </div>
+                  </div>
+                </StaggerItem>
+              ))}
+            </Stagger>
+
+            {/* architecture cards — how it's built */}
+            <p className="eyebrow mb-2 text-[var(--muted-foreground)]/60">
+              Architecture
+            </p>
+            <Stagger className="grid gap-2 sm:grid-cols-2 sm:gap-2.5">
+              {architecture.map((feat) => (
+                <StaggerItem key={feat.title}>
+                  <div className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)]/30 p-2.5 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-pawa-accent/20 hover:shadow-lg hover:shadow-pawa-accent/5 sm:p-3">
+                    <feat.icon className="mt-0.5 h-4 w-4 shrink-0 text-pawa-accent" />
                     <div>
                       <p className="text-xs font-medium">{feat.title}</p>
                       <p className="text-[10px] leading-snug text-[var(--muted-foreground)]">
