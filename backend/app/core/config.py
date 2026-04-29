@@ -33,6 +33,25 @@ class Settings(BaseSettings):
         description="Gemini model identifier",
     )
 
+    # Document processing
+    DOCUMENT_MAX_BYTES: int = Field(default=10 * 1024 * 1024)
+    DOCUMENT_MAX_PAGES: int = Field(default=100)
+    DOCUMENT_CACHE_TTL_PARSED: int = Field(
+        default=86400
+    )  # 24h Redis TTL for parsed text
+    DOCUMENT_CACHE_TTL_OUTPUT: int = Field(
+        default=604800
+    )  # 7d Redis TTL for LLM outputs
+    DOCUMENT_CHUNK_BUDGET: int = Field(default=80_000)  # max tokens per chunk
+    DOCUMENT_SINGLE_PASS_LIMIT: int = Field(default=120_000)  # threshold for map-reduce
+    DOCUMENT_OCR_CHAR_THRESHOLD: int = Field(
+        default=40
+    )  # chars/page below this → try OCR
+
+    GOOGLE_VISION_KEY_PATH: str = Field(
+        default="", description="Service account JSON path for Cloud Vision OCR"
+    )
+
     MAX_QUERY_LENGTH: int = 2000
     MAX_HISTORY_ITEMS: int = 50
 
