@@ -18,11 +18,10 @@ Conversation persisted to PostgreSQL (keyed by user email for authenticated user
 
 ## Auth
 
-Three paths, all produce an HMAC-signed Bearer token stored in localStorage:
+Two paths, all produce an HMAC-signed Bearer token stored in localStorage:
 
 - Google OAuth (redirect flow → signed token exchange)
 - Email/password (bcrypt, PostgreSQL)
-- Guest pass (@pawait.co.ke domain, 60-min TTL)
 
 Frontend sends `Authorization: Bearer <token>` on every API call — no cross-origin cookie dependency. Redis stores session blobs as a fallback for cookie-based sessions. Frontend middleware checks `pawacloud_auth` cookie for route gating; no cookie → `/login`.
 

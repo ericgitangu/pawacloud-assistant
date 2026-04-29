@@ -1,4 +1,4 @@
-"""Auth router — Google OAuth, email/password, guest pass."""
+"""Auth router — Google OAuth, email/password."""
 
 import base64
 import hashlib
@@ -285,89 +285,6 @@ async def login_email(body: LoginRequest):
         }
     )
     _store_session(session_id, user_data, response)
-    return response
-
-
-# --------------- domain guest pass ---------------
-
-
-class GuestPassRequest(BaseModel):
-    email: str = Field(..., min_length=5, examples=["reviewer@pawait.co.ke"])
-
-
-@router.post("/guest-pass", summary="Frictionless access for whitelisted domains")
-async def guest_pass(body: GuestPassRequest):
-    """60-minute session for @pawait.co.ke employees — no signup required."""
-    settings = get_settings()
-
-    domain = body.email.rsplit("@", 1)[-1].lower() if "@" in body.email else ""
-    if domain not in settings.GUEST_PASS_DOMAINS:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Guest pass is only available for {', '.join(settings.GUEST_PASS_DOMAINS)} email addresses",
-        )
-
-    user_data = await _upsert_user(
-        email=body.email,
-        name=body.email.split("@")[0].replace(".", " ").title(),
-        provider="guest_pass",
-    )
-
-    session_id = str(uuid4())
-    session_payload = {
-        "email": user_data.get("email", ""),
-        "name": user_data.get("name", ""),
-        "picture": user_data.get("picture", ""),
-        "authenticated": True,
-        "guest_pass": True,
-    }
-
-    try:
-        from app.services.history_service import get_redis
-
-        redis = get_redis()
-        if redis:
-            redis.setex(
-                f"session:{session_id}",
-                settings.GUEST_PASS_TTL,
-                json.dumps(session_payload),
-            )
-    except Exception as exc:
-        logger.warning("redis guest-pass session failed: %s", exc)
-
-    session_token = _sign_token(
-        {"session_id": session_id, **session_payload},
-        settings.SESSION_SECRET,
-        ttl=settings.GUEST_PASS_TTL,
-    )
-    response = JSONResponse(
-        {
-            "message": "Guest pass activated — 60 minute session",
-            "user": {
-                "email": user_data["email"],
-                "name": user_data["name"],
-                "picture": user_data.get("picture", ""),
-            },
-            "ttl_minutes": settings.GUEST_PASS_TTL // 60,
-            "session_token": session_token,
-        }
-    )
-    response.set_cookie(
-        SESSION_COOKIE,
-        session_id,
-        httponly=True,
-        samesite=_SAMESITE,
-        max_age=settings.GUEST_PASS_TTL,
-        secure=_SECURE_COOKIES,
-    )
-    response.set_cookie(
-        AUTH_FLAG_COOKIE,
-        "1",
-        httponly=False,
-        samesite=_SAMESITE,
-        max_age=settings.GUEST_PASS_TTL,
-        secure=_SECURE_COOKIES,
-    )
     return response
 
 

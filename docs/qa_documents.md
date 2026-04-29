@@ -6,7 +6,7 @@ Walk through these on a real device before merging.
 
 - [ ] `make dev-backend` running on `:8000`
 - [ ] `make dev-frontend` running on `:3000`
-- [ ] Sign in (Google OAuth or guest pass with `tester@pawait.co.ke`)
+- [ ] Sign in (Google OAuth or email/password)
 
 ## Golden path — file upload
 

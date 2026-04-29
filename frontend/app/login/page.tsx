@@ -16,7 +16,7 @@ import {
   Code2,
   Database,
 } from "lucide-react";
-import { loginWithEmail, getLoginUrl, activateGuestPass } from "@/lib/api";
+import { loginWithEmail, getLoginUrl } from "@/lib/api";
 import { Footer } from "@/components/Footer";
 import { FadeIn, Stagger, StaggerItem } from "@/components/FadeIn";
 import { useAuth } from "@/providers/AuthProvider";
@@ -129,10 +129,6 @@ function LoginContent() {
     authError === "oauth_failed" ? "Google sign-in failed — try again" : "",
   );
   const [loading, setLoading] = useState(false);
-  const [guestEmail, setGuestEmail] = useState("");
-  const [showGuestPass, setShowGuestPass] = useState(false);
-  const [guestLoading, setGuestLoading] = useState(false);
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
@@ -344,83 +340,6 @@ function LoginContent() {
                   </Link>
                 </p>
 
-                {/* guest pass for pawait employees */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowGuestPass(!showGuestPass)}
-                    className="group text-xs text-[var(--muted-foreground)]/50 transition-colors hover:text-[var(--foreground)]"
-                    title="Pawa IT employees can enter their @pawait.co.ke email for a 60-minute session — no signup needed"
-                  >
-                    Pawa IT employee?
-                    <span className="ml-1 inline-block rounded bg-pawa-cyan/10 px-1.5 py-0.5 text-[10px] text-pawa-cyan">
-                      Fast Pass
-                    </span>
-                  </button>
-
-                  {/* tooltip */}
-                  <div
-                    className={cn(
-                      "pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 w-56 -translate-x-1/2 rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[11px] text-[var(--muted-foreground)] shadow-lg opacity-0 transition-opacity",
-                      "group-hover:pointer-events-auto group-hover:opacity-100",
-                    )}
-                  >
-                    Enter your @pawait.co.ke email for a 60-minute grading
-                    session with full chat history — no account needed.
-                  </div>
-                </div>
-
-                {showGuestPass && (
-                  <form
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      setGuestLoading(true);
-                      setError("");
-                      try {
-                        const guestData = await activateGuestPass(guestEmail);
-                        document.cookie =
-                          "pawacloud_auth=1; path=/; max-age=3600; SameSite=Lax";
-                        setUser({
-                          email: guestData.user.email,
-                          name: guestData.user.name,
-                          picture: guestData.user.picture,
-                          authenticated: true,
-                        });
-                        router.push(redirect);
-                      } catch (err) {
-                        setError(
-                          err instanceof Error
-                            ? err.message
-                            : "Guest pass failed",
-                        );
-                      } finally {
-                        setGuestLoading(false);
-                      }
-                    }}
-                    className="mt-2 flex items-center gap-2"
-                  >
-                    <input
-                      type="email"
-                      value={guestEmail}
-                      onChange={(e) => setGuestEmail(e.target.value)}
-                      placeholder="you@pawait.co.ke"
-                      required
-                      className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs outline-none transition-colors focus:border-pawa-cyan/50 focus:ring-1 focus:ring-pawa-cyan/20"
-                    />
-                    <button
-                      type="submit"
-                      disabled={
-                        guestLoading || !guestEmail.endsWith("@pawait.co.ke")
-                      }
-                      className="shrink-0 rounded-lg bg-pawa-cyan/15 px-3 py-2 text-xs font-medium text-pawa-cyan transition-all hover:bg-pawa-cyan/25 disabled:opacity-40"
-                    >
-                      {guestLoading ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        "Go"
-                      )}
-                    </button>
-                  </form>
-                )}
               </div>
             </div>
           </FadeIn>

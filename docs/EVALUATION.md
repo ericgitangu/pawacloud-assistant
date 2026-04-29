@@ -34,7 +34,7 @@ How the submission maps to the assessment criteria.
 | --------- | ----------- |
 | Rust PyO3 | Optional native text processing with Python fallback. `sanitize_input`: ~0.9us vs ~45us (50x), `estimate_tokens`: ~1.2us vs ~120us (100x), `validate_markdown`: ~2.1us vs ~80us (38x). Live at [`/health/metrics`](https://pawacloud-api-904401126919.africa-south1.run.app/health/metrics) |
 | Redis sessions | History persists across cold starts. Keyed by user email, not session ID |
-| Google OAuth + Guest Pass | GCP alignment. `@pawait.co.ke` fast pass reduces grading friction |
+| Google OAuth + Email/password | GCP alignment for OAuth; bcrypt + PostgreSQL persistence for email accounts |
 | Status dashboard | `/status` with live benchmarks, latency charts, infra metadata |
 | Terraform IaC | Reproducible Cloud Run provisioning in `infra/` |
 | Multilingual | Gemini handles Swahili, Amharic, French natively — no extra service |

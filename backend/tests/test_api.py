@@ -13,9 +13,24 @@ def client():
 
 @pytest.fixture
 def authed_client():
-    """Client with an active guest-pass session — for endpoints that need auth."""
+    """Bearer-token auth for tests — bypasses OAuth without depending on a removed endpoint."""
+    from uuid import uuid4
+    from app.core.config import get_settings
+    from app.routers.auth import _sign_token
+
+    token = _sign_token(
+        {
+            "session_id": str(uuid4()),
+            "email": "tester@example.com",
+            "name": "Tester",
+            "picture": "",
+            "authenticated": True,
+        },
+        get_settings().SESSION_SECRET,
+        ttl=3600,
+    )
     c = TestClient(app)
-    c.post("/auth/guest-pass", json={"email": "tester@pawait.co.ke"})
+    c.headers["Authorization"] = f"Bearer {token}"
     return c
 
 
@@ -172,21 +187,12 @@ class TestAuthEndpoint:
         # 401 if postgres is available, 503 if not
         assert resp.status_code in (401, 503)
 
-    def test_guest_pass_pawait_domain(self, client):
+    def test_guest_pass_endpoint_removed(self, client):
         resp = client.post(
             "/auth/guest-pass",
-            json={"email": "reviewer@pawait.co.ke"},
+            json={"email": "anyone@anywhere.com"},
         )
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["ttl_minutes"] == 60
-
-    def test_guest_pass_rejected_for_other_domains(self, client):
-        resp = client.post(
-            "/auth/guest-pass",
-            json={"email": "someone@gmail.com"},
-        )
-        assert resp.status_code == 403
+        assert resp.status_code in (404, 405)
 
 
 class TestEventRegistry:

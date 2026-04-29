@@ -19,8 +19,24 @@ def client():
 
 @pytest.fixture
 def authed_client():
+    """Bearer-token auth — same shape as test_api.py's authed_client."""
+    from uuid import uuid4
+    from app.core.config import get_settings
+    from app.routers.auth import _sign_token
+
+    token = _sign_token(
+        {
+            "session_id": str(uuid4()),
+            "email": "tester@example.com",
+            "name": "Tester",
+            "picture": "",
+            "authenticated": True,
+        },
+        get_settings().SESSION_SECRET,
+        ttl=3600,
+    )
     c = TestClient(app)
-    c.post("/auth/guest-pass", json={"email": "tester@pawait.co.ke"})
+    c.headers["Authorization"] = f"Bearer {token}"
     return c
 
 
