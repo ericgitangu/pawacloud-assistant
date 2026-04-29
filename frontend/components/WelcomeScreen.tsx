@@ -1,6 +1,13 @@
 "use client";
 
-import { Cloud, FileText, Languages, Camera } from "lucide-react";
+import {
+  Cloud,
+  FileText,
+  Languages,
+  Camera,
+  Sparkles,
+  Download,
+} from "lucide-react";
 import { FadeIn, Stagger, StaggerItem } from "@/components/FadeIn";
 import { SystemStatus } from "@/components/SystemStatus";
 
@@ -14,22 +21,32 @@ export function WelcomeScreen({ suggestions, onSelect }: WelcomeScreenProps) {
     {
       icon: Cloud,
       title: "Ask Anything",
-      desc: "Cloud, code, news, travel — streamed answers",
+      desc: "Streamed Gemini answers on cloud, code, news, travel docs",
     },
     {
       icon: FileText,
-      title: "Upload & Transform",
-      desc: "PDF, DOCX, JPG, PNG — up to 10 MB",
-    },
-    {
-      icon: Languages,
-      title: "Translate + Summarize",
-      desc: "12 curated languages or your own",
+      title: "Upload Documents",
+      desc: "PDF, DOCX, JPG, or PNG — up to 10 MB",
     },
     {
       icon: Camera,
-      title: "Camera-Friendly",
-      desc: "Snap a photo, OCR it, share the result",
+      title: "Camera OCR",
+      desc: "Snap a doc on mobile. Blur check, then Cloud Vision OCR",
+    },
+    {
+      icon: Sparkles,
+      title: "Summarize",
+      desc: "One-click markdown overview of any uploaded document",
+    },
+    {
+      icon: Languages,
+      title: "Translate",
+      desc: "Render any document in 12 curated languages or free-text",
+    },
+    {
+      icon: Download,
+      title: "Download",
+      desc: "Export results as md, txt, docx, or pdf — rendered client-side",
     },
   ];
 
@@ -52,7 +69,7 @@ export function WelcomeScreen({ suggestions, onSelect }: WelcomeScreenProps) {
         </div>
       </FadeIn>
 
-      <Stagger className="mb-10 grid w-full max-w-2xl grid-cols-2 gap-3 sm:grid-cols-4">
+      <Stagger className="mb-10 grid w-full max-w-3xl grid-cols-2 gap-3 sm:grid-cols-3">
         {features.map((feat) => (
           <StaggerItem key={feat.title}>
             <div className="flex flex-col items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--card)]/40 p-4 text-center backdrop-blur-sm transition-all hover:border-pawa-cyan/30 hover:shadow-lg hover:shadow-pawa-cyan/5 hover:-translate-y-0.5">

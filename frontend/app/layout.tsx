@@ -24,10 +24,10 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://pawacloud-web.fly.dev"),
+  metadataBase: new URL("https://pawacloud-web.vercel.app"),
   title: "PawaCloud Assistant",
   description:
-    "Your AI assistant for cloud infrastructure, general knowledge, and everything in between.",
+    "AI assistant for cloud infrastructure, document upload + translation, and everything in between.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -36,8 +36,9 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "PawaCloud Assistant",
-    description: "AI assistant for cloud, code, and general questions.",
-    url: "https://pawacloud-web.fly.dev",
+    description:
+      "Streamed Q&A, document upload (PDF/DOCX/image), translate + summarize via Gemini.",
+    url: "https://pawacloud-web.vercel.app",
     siteName: "PawaCloud Assistant",
     images: [
       {
@@ -52,7 +53,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "PawaCloud Assistant",
-    description: "AI assistant for cloud, code, and general questions.",
+    description:
+      "Streamed Q&A, document upload (PDF/DOCX/image), translate + summarize via Gemini.",
     images: ["/og-image.png"],
   },
 };
