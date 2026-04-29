@@ -1,0 +1,49 @@
+name: Bug report
+description: Something is broken or not behaving as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. The more detail, the
+        easier it is to reproduce.
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One line describing what's broken
+      placeholder: "/api/v1/documents/upload returns 500 on .pdf with embedded fonts"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Sign in via guest pass
+        2. Upload <attached.pdf>
+        3. Click Summarize → English
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "macOS 15 / Chrome 130 / backend on Cloud Run africa-south1"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs / network requests
+      render: shell
