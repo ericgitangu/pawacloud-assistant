@@ -116,8 +116,11 @@ cd rust-core && cargo test   # rust (runs inside Docker build)
 | `GET` | `/api/v1/chat/history` | Paginated history (per user) |
 | `DELETE` | `/api/v1/chat/history/{id}` | Delete single conversation |
 | `DELETE` | `/api/v1/chat/history` | Clear all history |
+| `POST` | `/api/v1/documents/upload` | Multipart upload → `ArtifactSummary` |
+| `GET` | `/api/v1/documents/{id}/process` | SSE stream: summarize or translate |
 | `GET` | `/health` | Health + model metadata |
 | `GET` | `/health/metrics` | PyO3 benchmarks + Redis stats |
+| `GET` | `/health/events` | Event registry introspection |
 | `GET` | `/health/infra` | Cloud Run / Fly.io env info |
 | `GET` | `/health/llm` | Live Gemini connectivity test |
 | `GET` | `/auth/login` | → Google OAuth consent |
@@ -127,6 +130,8 @@ cd rust-core && cargo test   # rust (runs inside Docker build)
 | `GET` | `/auth/me` | Current user |
 | `POST` | `/auth/logout` | Clear session |
 | `POST` | `/auth/guest-pass` | 60-min session for `@pawait.co.ke` |
+
+**Document pipeline** — upload PDF/DOCX/JPG/PNG, summarize or translate via SSE → see [docs/documents.md](docs/documents.md).
 
 All endpoints return typed Pydantic v2 models. Input sanitized via Rust PyO3 (Python fallback). See [Swagger](https://pawacloud-api-904401126919.africa-south1.run.app/docs) for request/response schemas.
 
