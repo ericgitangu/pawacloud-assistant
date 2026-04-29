@@ -9,6 +9,7 @@ from fastapi import APIRouter
 
 from app.core.config import get_settings
 from app.services.text_processing import RUST_AVAILABLE
+from app.core.events import EVENT_REGISTRY, event_counts
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -97,6 +98,16 @@ async def llm_health():
         }
 
 
+@router.get("/health/events", summary="Event registry introspection", tags=["Health"])
+async def events_registry():
+    """Lists every event code the document pipeline can emit, with descriptions."""
+    return {
+        "registered": [str(code) for code in EVENT_REGISTRY],
+        "descriptions": {str(code): desc for code, desc in EVENT_REGISTRY.items()},
+        "counts_since_start": event_counts(),
+    }
+
+
 @router.get("/health/metrics", summary="Backend performance metrics", tags=["Health"])
 async def metrics():
     """PyO3 vs Python benchmarks, service uptime, and Redis health."""
@@ -110,11 +121,17 @@ async def metrics():
 
     pg_info = await _pg_metrics()
 
+    events_block = {
+        "registered": [str(code) for code in EVENT_REGISTRY],
+        "counts_since_start": event_counts(),
+    }
+
     return {
         "uptime_seconds": round(uptime_secs, 1),
         "boot_time": _BOOT_TIMESTAMP.isoformat(),
         "rust_native": RUST_AVAILABLE,
         "benchmarks": benchmarks,
+        "events": events_block,
         "redis": redis_info,
         "postgres": pg_info,
         "timestamp": datetime.now(UTC).isoformat(),

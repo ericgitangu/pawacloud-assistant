@@ -187,3 +187,26 @@ class TestAuthEndpoint:
             json={"email": "someone@gmail.com"},
         )
         assert resp.status_code == 403
+
+
+class TestEventRegistry:
+    def test_event_registry_endpoint(self, client):
+        resp = client.get("/health/events")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert set(data["registered"]) == {
+            "parsed",
+            "cache_hit",
+            "chunk",
+            "progress",
+            "done",
+            "error",
+        }
+        assert "descriptions" in data
+
+    def test_event_metrics_in_health_metrics(self, client):
+        resp = client.get("/health/metrics")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "events" in data
+        assert isinstance(data["events"]["counts_since_start"], dict)
