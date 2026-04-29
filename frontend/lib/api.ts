@@ -31,6 +31,37 @@ function authHeaders(
   return extra;
 }
 
+// ─── Documents ────────────────────────────────────────────────────────
+
+export interface ArtifactWarning {
+  code: "scanned_no_ocr" | "truncated" | "large_file";
+  message: string;
+}
+
+export interface ArtifactSummary {
+  id: string;
+  filename: string;
+  mime: string;
+  byte_size: number;
+  page_count: number;
+  char_count: number;
+  source_lang: string | null;
+  parsed_preview: string;
+  parse_method: "docx" | "pdf-text" | "pdf-ocr" | "pdf-empty" | "image-ocr" | "image-empty";
+  warnings: ArtifactWarning[];
+  created_at: string;
+}
+
+export type ProcessAction = "summarize" | "translate";
+
+export type ProcessEvent =
+  | { type: "parsed"; tokens: number; chunks: number }
+  | { type: "cache_hit"; content: string }
+  | { type: "chunk"; text: string }
+  | { type: "progress"; phase: "map" | "reduce"; step: number; of: number }
+  | { type: "done"; tokens_used: number | null; model: string }
+  | { type: "error"; code: string; message: string };
+
 export interface ChatResponse {
   id: string;
   query: string;
@@ -42,10 +73,12 @@ export interface ChatResponse {
 
 export interface HistoryItem {
   id: string;
+  kind?: "chat" | "document";
   query: string;
   response: string;
   model: string;
   created_at: string;
+  artifact?: ArtifactSummary | null;
 }
 
 export interface HistoryResponse {
@@ -252,4 +285,69 @@ export async function loginWithEmail(
   const data = await res.json();
   if (data.session_token) storeToken(data.session_token);
   return data;
+}
+
+export async function uploadDocument(file: File): Promise<ArtifactSummary> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(`${API_BASE}/api/v1/documents/upload`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: form,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Upload failed" }));
+    throw new Error(err.detail || `Upload error: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function streamDocumentProcess(
+  artifactId: string,
+  action: ProcessAction,
+  targetLang: string,
+  onEvent: (ev: ProcessEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const url = new URL(`${API_BASE}/api/v1/documents/${artifactId}/process`);
+  url.searchParams.set("action", action);
+  url.searchParams.set("lang", targetLang);
+
+  const res = await fetch(url.toString(), {
+    headers: authHeaders({ Accept: "text/event-stream" }),
+    signal,
+  });
+  if (!res.ok) {
+    onEvent({
+      type: "error",
+      code: "http_error",
+      message: "Couldn't reach the server. Try again.",
+    });
+    return;
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) {
+    onEvent({ type: "error", code: "no_body", message: "No response body." });
+    return;
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const payload = line.slice(6);
+      try {
+        onEvent(JSON.parse(payload) as ProcessEvent);
+      } catch {
+        /* ignore malformed event */
+      }
+    }
+  }
 }
