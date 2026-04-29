@@ -100,6 +100,9 @@ Cloud Run (africa-south1) · Vercel · Cloud Vision · PostgreSQL (Neon).
 > Demo: https://pawacloud-web.vercel.app
 > Source: https://github.com/ericgitangu/pawacloud-assistant
 >
+> Thanks to <!-- @-tag pawait engineers + early testers here when posting -->
+> for kicking the tires.
+>
 > #BuildingInPublic #DailyShip #GCP #Gemini #FastAPI #NextJS #Rust #PyO3
 > #PWA #DocumentAI #OCR #Africa #Nairobi #PawaIT
 
