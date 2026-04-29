@@ -10,7 +10,7 @@ from fastapi.responses import HTMLResponse
 from app.core.config import get_settings
 from app.core.database import close_db, init_db
 from app.core.middleware import SessionMiddleware
-from app.routers import auth, chat, health
+from app.routers import auth, chat, documents, health
 from app.services.text_processing import RUST_AVAILABLE
 
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +42,7 @@ app = FastAPI(
             "name": "Auth",
             "description": "Google OAuth, email/password, and guest pass authentication",
         },
+        {"name": "Documents", "description": "Upload + summarize + translate"},
     ],
     swagger_ui_parameters={"defaultModelsExpandDepth": -1},
 )
@@ -60,6 +61,7 @@ app.add_middleware(SessionMiddleware)
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(chat.router, prefix="/api/v1", tags=["Chat"])
+app.include_router(documents.router, prefix="/api/v1", tags=["Documents"])
 
 
 @app.get("/redoc", include_in_schema=False)
