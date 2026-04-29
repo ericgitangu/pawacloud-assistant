@@ -47,7 +47,8 @@ async def upload_document(
     user = _require_auth(request)
     settings = get_settings()
 
-    if file.content_type not in ALLOWED_MIMES:
+    mime = file.content_type or ""
+    if mime not in ALLOWED_MIMES:
         raise HTTPException(status_code=415, detail="Only .pdf and .docx are supported")
 
     raw = await file.read()
@@ -61,7 +62,7 @@ async def upload_document(
     if existing is not None:
         return existing
 
-    parsed = parse_document(raw, file.filename or "upload", file.content_type)
+    parsed = parse_document(raw, file.filename or "upload", mime)
 
     if parsed.page_count > settings.DOCUMENT_MAX_PAGES:
         raise HTTPException(
@@ -74,7 +75,7 @@ async def upload_document(
     summary = ArtifactSummary(
         id=artifact_id,
         filename=file.filename or "upload",
-        mime=file.content_type,
+        mime=mime,
         byte_size=len(raw),
         page_count=parsed.page_count,
         char_count=parsed.char_count,

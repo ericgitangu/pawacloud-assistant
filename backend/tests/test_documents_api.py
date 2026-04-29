@@ -77,3 +77,40 @@ class TestDocumentUpload:
         assert resp.status_code == 200
         data = resp.json()
         assert data["parse_method"] == "pdf-text"
+
+    def test_dedupes_same_sha_for_same_owner(self, authed_client, monkeypatch):
+        from datetime import UTC, datetime
+        from uuid import UUID
+
+        from app.models.schemas import ArtifactSummary
+        from app.routers import documents as docs_router
+
+        cached_id = UUID("11111111-1111-1111-1111-111111111111")
+        cached = ArtifactSummary(
+            id=cached_id,
+            filename="sample.pdf",
+            mime="application/pdf",
+            byte_size=10,
+            page_count=1,
+            char_count=20,
+            source_lang="en",
+            parsed_preview="cached preview",
+            parse_method="pdf-text",
+            warnings=[],
+            created_at=datetime.now(UTC),
+        )
+
+        async def _hit(owner, sha):
+            return cached
+
+        monkeypatch.setattr(docs_router, "_find_existing", _hit)
+
+        with open(FIXTURES / "sample.pdf", "rb") as fh:
+            resp = authed_client.post(
+                "/api/v1/documents/upload",
+                files={"file": ("sample.pdf", fh, "application/pdf")},
+            )
+
+        assert resp.status_code == 200
+        assert resp.json()["id"] == str(cached_id)
+        assert resp.json()["parsed_preview"] == "cached preview"
