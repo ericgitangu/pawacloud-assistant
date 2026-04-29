@@ -34,7 +34,7 @@ function authHeaders(
 // ─── Documents ────────────────────────────────────────────────────────
 
 export interface ArtifactWarning {
-  code: "scanned_no_ocr" | "truncated" | "large_file";
+  code: "scanned_no_ocr" | "truncated" | "large_file" | "ocr_no_text";
   message: string;
 }
 
