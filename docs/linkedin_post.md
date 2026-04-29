@@ -56,7 +56,19 @@ Code: https://github.com/ericgitangu/pawacloud-assistant
 
 Python 3.12 · FastAPI · asyncpg · Redis · Pydantic v2 · Rust + PyO3 ·
 Next.js 16 · Tailwind v4 · shadcn-ui · sonner · Gemini 2.5 Flash ·
-Cloud Run (africa-south1) · Vercel · Cloud Vision · PostgreSQL.
+Cloud Run (africa-south1) · Vercel · Cloud Vision · PostgreSQL (Neon).
+
+### Day-1 numbers (from prod, snapshotted before the post)
+
+> Pulled from the live Neon PG — no PII, just shape.
+
+- **9 users signed up** between 12 Mar and 1 Apr — 8 distinct days
+- **6 via Google OAuth** · 1 email/password · 1 linked both · 1 legacy guest-pass (since removed)
+- **3 from `pawait.co.ke` / `dev.pawait.co.ke`** — the assessor's own domain showed up
+- **5 artifacts uploaded** by 2 distinct users · 4 cached outputs (cache-first paid back)
+- **7 chat sessions** + 1 document summarize/translate flow
+- DB footprint: **8.7 MB** total · Rust hot paths benchmarked at **3-101× over Python**
+  (`detect_script` is 101.8× — that's the one that matters for source-language hinting)
 
 ### Hashtags
 
@@ -80,6 +92,10 @@ Cloud Run (africa-south1) · Vercel · Cloud Vision · PostgreSQL.
 > - One SSE event protocol shared by `/chat` and `/documents/process`
 > - A Rust+PyO3 hot path for hashing, script detection, and chunking
 > - Camera capture with a Laplacian-variance blur gate before upload
+>
+> Day-1 numbers (no PII, just shape): 9 sign-ups across 8 distinct days, 6
+> via Google OAuth, 5 artifacts uploaded, and the Rust+PyO3 `detect_script`
+> hot path is running 101.8× over the Python fallback.
 >
 > Demo: https://pawacloud-web.vercel.app
 > Source: https://github.com/ericgitangu/pawacloud-assistant
