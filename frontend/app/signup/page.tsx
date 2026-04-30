@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -109,7 +109,14 @@ const bonus: { label: string; icon?: string }[] = [
 
 export default function SignupPage() {
   const router = useRouter();
-  const { setUser } = useAuth();
+  const { user, loading: authLoading, setUser } = useAuth();
+
+  // already-authed users hitting /signup get bounced home (matches middleware)
+  useEffect(() => {
+    if (!authLoading && user?.authenticated) {
+      router.replace("/");
+    }
+  }, [authLoading, user, router]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");

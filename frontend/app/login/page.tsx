@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -174,7 +174,15 @@ function LoginContent() {
   const params = useSearchParams();
   const redirect = params.get("redirect") || "/";
   const authError = params.get("error");
-  const { setUser } = useAuth();
+  const { user, loading: authLoading, setUser } = useAuth();
+
+  // belt-and-braces with the middleware: if the cookie was lost but the
+  // cached user is still authed, bounce to / so we don't show the form
+  useEffect(() => {
+    if (!authLoading && user?.authenticated) {
+      router.replace(redirect);
+    }
+  }, [authLoading, user, router, redirect]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
