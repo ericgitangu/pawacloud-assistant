@@ -19,7 +19,7 @@ AI-powered chatbot with Gemini, Rust+PyO3 text processing, and GCP deployment.
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform&logoColor=white)
 
-**Live demo**: [pawacloud-web.fly.dev](https://pawacloud-web.fly.dev) · **API docs**: [/docs](https://pawacloud-api-904401126919.africa-south1.run.app/docs)
+**Live demo**: [pawacloud-web.vercel.app](https://pawacloud-web.vercel.app) · **API docs**: [/docs](https://pawacloud-api-904401126919.africa-south1.run.app/docs)
 
 ## Screenshots
 
@@ -47,11 +47,11 @@ Screenshots are available in the `public/screenshots` directory. Here are some o
 
 | Service | URL |
 |---------|-----|
-| Frontend | [pawacloud-web.fly.dev](https://pawacloud-web.fly.dev) |
+| Frontend | [pawacloud-web.vercel.app](https://pawacloud-web.vercel.app) |
 | Backend API | [pawacloud-api](https://pawacloud-api-904401126919.africa-south1.run.app) |
 | Swagger | [/docs](https://pawacloud-api-904401126919.africa-south1.run.app/docs) |
 | ReDoc | [/redoc](https://pawacloud-api-904401126919.africa-south1.run.app/redoc) |
-| Status | [/status](https://pawacloud-web.fly.dev/status) |
+| Status | [/status](https://pawacloud-web.vercel.app/status) |
 
 ---
 
@@ -59,7 +59,7 @@ Screenshots are available in the `public/screenshots` directory. Here are some o
 
 **Prerequisites**: Python 3.12+, [pnpm](https://pnpm.io/installation), Docker (for compose method)
 
-**Optional**: [Rust toolchain](https://rustup.rs) (PyO3 — falls back to Python), [gcloud CLI](https://cloud.google.com/sdk/docs/install) (Cloud Run deploy), [flyctl](https://fly.io/docs/flyctl/install/) (frontend deploy), [Terraform](https://developer.hashicorp.com/terraform/install) (IaC), [Gemini API key](https://aistudio.google.com/apikey) (LLM — app runs without it, returns error on chat)
+**Optional**: [Rust toolchain](https://rustup.rs) (PyO3 — falls back to Python), [gcloud CLI](https://cloud.google.com/sdk/docs/install) (Cloud Run deploy), [Vercel CLI](https://vercel.com/docs/cli) (frontend deploy), [Terraform](https://developer.hashicorp.com/terraform/install) (IaC), [Gemini API key](https://aistudio.google.com/apikey) (LLM — app runs without it, returns error on chat)
 
 ### Docker Compose (recommended)
 
@@ -121,7 +121,7 @@ cd rust-core && cargo test   # rust (runs inside Docker build)
 | `GET` | `/health` | Health + model metadata |
 | `GET` | `/health/metrics` | PyO3 benchmarks + Redis stats |
 | `GET` | `/health/events` | Event registry introspection |
-| `GET` | `/health/infra` | Cloud Run / Fly.io env info |
+| `GET` | `/health/infra` | Cloud Run env info |
 | `GET` | `/health/llm` | Live Gemini connectivity test |
 | `GET` | `/auth/login` | → Google OAuth consent |
 | `GET` | `/auth/callback` | OAuth code → session |
@@ -177,7 +177,7 @@ graph LR
         CR["Cloud Run<br/>FastAPI + Rust"]
         GEM["Gemini 2.5 Flash"]
     end
-    subgraph Fly["Fly.io — JNB"]
+    subgraph Vercel["Vercel"]
         WEB["Next.js 16"]
     end
     UPS["Upstash Redis"]
@@ -188,7 +188,7 @@ graph LR
     CR --> NEON
 ```
 
-Backend on Cloud Run (`africa-south1`), frontend on Fly.io (JNB). Terraform IaC in `infra/`. Details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Backend on Cloud Run (`africa-south1`), frontend on Vercel. Terraform IaC in `infra/`. Details in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
@@ -245,7 +245,7 @@ pawacloud-assistant/
 # backend → Cloud Run
 bash scripts/deploy-backend.sh
 
-# frontend → Fly.io
+# frontend → Vercel
 bash scripts/deploy-frontend.sh
 
 # or Terraform
