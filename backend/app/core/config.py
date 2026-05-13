@@ -18,11 +18,11 @@ class Settings(BaseSettings):
     )
     APP_VERSION: str = "1.0.0"
 
-    # CORS — includes local + fly.io deployments
+    # CORS — includes local + Vercel deployments
     ALLOWED_ORIGINS: list[str] = Field(
         default=[
             "http://localhost:3000",
-            "https://pawacloud-web.fly.dev",
+            "https://pawacloud-web.vercel.app",
             "https://pawacloud.web.app",
         ]
     )
