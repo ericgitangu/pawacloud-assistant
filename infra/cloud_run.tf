@@ -10,9 +10,20 @@ resource "google_cloud_run_v2_service" "backend" {
         container_port = 8000
       }
 
-      env {
-        name  = "GEMINI_API_KEY"
-        value = var.gemini_api_key
+      # Secret-bearing env vars resolve from Secret Manager at revision start,
+      # never from tfvars or Terraform state. Driven by local.backend_secrets
+      # (see secrets.tf) so the env wiring and the IAM grants cannot drift apart.
+      dynamic "env" {
+        for_each = local.backend_secrets
+        content {
+          name = env.key
+          value_source {
+            secret_key_ref {
+              secret  = data.google_secret_manager_secret.backend[env.key].secret_id
+              version = "latest"
+            }
+          }
+        }
       }
 
       env {
@@ -26,33 +37,13 @@ resource "google_cloud_run_v2_service" "backend" {
       }
 
       env {
-        name  = "REDIS_URL"
-        value = var.redis_url
-      }
-
-      env {
         name  = "GOOGLE_CLIENT_ID"
         value = var.google_client_id
       }
 
       env {
-        name  = "GOOGLE_CLIENT_SECRET"
-        value = var.google_client_secret
-      }
-
-      env {
-        name  = "SESSION_SECRET"
-        value = var.session_secret
-      }
-
-      env {
         name  = "FRONTEND_URL"
-        value = "https://pawacloud-web.fly.dev"
-      }
-
-      env {
-        name  = "DATABASE_URL"
-        value = var.database_url
+        value = "https://pawacloud-web.vercel.app"
       }
 
       env {
