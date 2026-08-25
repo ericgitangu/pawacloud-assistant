@@ -1,3 +1,10 @@
+# NOTE: the secret-bearing variables below — gemini_api_key, redis_url,
+# google_client_secret, session_secret and database_url — are NO LONGER wired
+# into Cloud Run. Those values now live in Secret Manager and are read via
+# data sources (see secrets.tf), so plaintext never reaches tfvars or state.
+# The declarations are kept so existing terraform.tfvars files keep parsing;
+# setting them has no effect. Rotate with `gcloud secrets versions add` instead.
+
 variable "project_id" {
   description = "GCP project ID"
   type        = string
@@ -10,15 +17,16 @@ variable "region" {
 }
 
 variable "gemini_api_key" {
-  description = "Google Gemini API key"
+  description = "DEPRECATED — now read from Secret Manager (gemini-api-key). Unused."
   type        = string
   sensitive   = true
+  default     = ""
 }
 
 variable "frontend_origins" {
   description = "Allowed CORS origins for the frontend"
   type        = list(string)
-  default     = ["https://pawacloud-web.fly.dev", "http://localhost:3000"]
+  default     = ["https://pawacloud-web.vercel.app", "http://localhost:3000"]
 }
 
 variable "redis_url" {
